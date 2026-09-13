@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java 8: Java'nın en stabil ve olgun sürümlerinden biri — Java 21'e giden yol</title>
+<style>
+:root{
+  --esp:#1F1410; --esp2:#2E211A; --esp3:#3A2C23;
+  --orange:#E76F00; --orange-soft:#F5A54A; --blue:#5382A1;
+  --ink:#2B2B2B; --muted:#6E6E6E; --paper:#FFFFFF; --card:#F4F4F4; --tint:#FDF1E4;
+  --code-txt:#EDE7E1; --code-cmt:#A0958B; --code-lbl:#F5A54A;
+  --head:"Cambria","Georgia","Times New Roman",serif;
+  --body:"Segoe UI","Calibri","Helvetica Neue",Arial,sans-serif;
+  --mono:"Cascadia Code","Consolas","Courier New",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#120d0b;color:var(--ink);font-family:var(--body);overflow:hidden}
+button{font-family:var(--body)}
+
+/* ---------- stage & scaling ---------- */
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;transition:right .25s}
+body.notes-open #wrap{right:min(360px,42vw)}
+#stage{flex:none;position:relative;width:1280px;height:720px;transform-origin:center center;box-shadow:0 30px 80px rgba(0,0,0,.6);border-radius:6px;overflow:hidden;background:var(--paper)}
+.slide{position:absolute;inset:0;padding:44px 56px 40px;display:none;flex-direction:column;background:var(--paper)}
+.slide.active{display:flex}
+.slide.dark{background:var(--esp);color:var(--paper)}
+.slide .notes{display:none}
+
+/* ---------- typography ---------- */
+.kicker{font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--orange);margin:0 0 6px}
+h1{font-family:var(--head);font-size:36px;line-height:1.15;margin:0 0 24px;color:var(--esp)}
+.dark h1{color:var(--paper)}
+h2{font-family:var(--head);font-size:20px;margin:0 0 8px;color:var(--esp)}
+.dark h2{color:var(--paper)}
+h3{font-size:16px;margin:0 0 4px;color:var(--esp)}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+ul.b{margin:0;padding-left:18px;font-size:15px;line-height:1.45}
+ul.b li{margin-bottom:8px}
+ul.b li::marker{color:var(--orange)}
+
+/* ---------- layout helpers ---------- */
+.fill{flex:1;min-height:0}
+.row{display:flex;gap:24px;min-height:0}
+.col{display:flex;flex-direction:column;min-height:0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.card{background:var(--card);border-radius:12px;padding:22px 24px}
+.card.tint{background:var(--tint)}
+.dark .card{background:var(--esp2);color:var(--paper)}
+.ic{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--orange);color:#fff;flex:none}
+.ic svg{width:48%;height:48%;fill:currentColor}
+.ic.blue{background:var(--blue)} .ic.esp{background:var(--esp)} .dark .ic.esp{background:var(--esp3)}
+.ic.s{width:44px;height:44px} .ic.m{width:56px;height:56px} .ic.l{width:80px;height:80px} .ic.xl{width:110px;height:110px}
+.tag{display:inline-block;border-radius:999px;padding:4px 14px;font-size:11px;font-weight:700;color:#fff;background:var(--blue)}
+.tag.orange{background:var(--orange)}
+.iconrow{display:flex;gap:14px;align-items:flex-start}
+.iconrow p{font-size:13.5px;color:var(--muted);line-height:1.35}
+.iconrow h3{margin-bottom:3px}
+.stat{display:flex;align-items:center;gap:18px}
+.stat b{font-family:var(--head);font-size:34px;color:var(--orange);min-width:120px}
+.stat span{font-size:13px}
+.footer{position:absolute;left:56px;right:56px;bottom:18px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+
+/* ---------- runnable code ---------- */
+.runner{background:var(--esp);border-radius:12px;color:var(--code-txt);display:flex;flex-direction:column;min-height:0;overflow:hidden;flex:1}
+.runner .rh{display:flex;align-items:center;gap:8px;padding:9px 14px 6px;font:700 12px var(--mono);color:var(--code-lbl)}
+.runner .rh .lbl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.runner .rh .jdk{font:600 10px var(--body);color:#c9bfb5;background:var(--esp3);border-radius:999px;padding:2px 8px;letter-spacing:.04em}
+.btn{background:var(--orange);color:#fff;border:0;border-radius:999px;padding:4px 12px;font:700 12px var(--body);cursor:pointer;white-space:nowrap}
+.btn:hover{filter:brightness(1.1)}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn.ghost{background:var(--esp3);color:#e6ddd4}
+.runner textarea{scrollbar-color:#5a4636 transparent;scrollbar-width:thin;flex:1;min-height:0;width:100%;background:transparent;color:var(--code-txt);border:0;resize:none;outline:none;padding:2px 14px 10px;font:12.5px/1.45 var(--mono);white-space:pre;overflow:auto;tab-size:4;caret-color:var(--orange-soft)}
+.runner textarea::selection{background:#5a3a1a}
+.runner .out{scrollbar-color:#5a4636 transparent;scrollbar-width:thin;display:none;border-top:1px solid var(--esp3);background:#150e0b;padding:8px 14px 10px;font:12px/1.45 var(--mono);white-space:pre-wrap;overflow:auto;max-height:46%;flex:none}
+.runner .out.show{display:block}
+.runner .out .st{font:700 11px var(--body);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;color:#c9bfb5}
+.runner .out.ok .st{color:#8BD17C} .runner .out.err .st{color:#FF8A80}
+.runner .out .err{color:#FF8A80}
+.runner .out .hint{margin-top:8px;padding:8px 10px;border-left:3px solid var(--orange);background:#2a1c14;color:#f0e0cf;font-family:var(--body);font-size:12px;white-space:normal}
+.runner .out code{font-family:var(--mono);color:var(--code-lbl)}
+.ide-note{font-size:12px;color:var(--muted);margin-top:10px}
+.ide-note kbd{font:600 11px var(--mono);background:var(--card);border:1px solid #ddd;border-radius:4px;padding:1px 5px}
+
+/* ---------- pipeline ---------- */
+.pipe{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0 6px}
+.pipe span{font:700 13px var(--mono);color:#fff;background:var(--blue);border-radius:999px;padding:10px 0;width:150px;text-align:center}
+.pipe span.src{background:var(--esp)} .pipe span.end{background:var(--orange)}
+.pipe i{width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:14px solid #9a9a9a}
+
+/* ---------- timeline ---------- */
+.tl{position:relative;display:flex;justify-content:space-between;margin:34px 10px 26px}
+.tl::before{content:"";position:absolute;left:30px;right:30px;top:62px;height:4px;background:#d8d8d8;border-radius:2px}
+.tl .pt{position:relative;width:118px;text-align:center}
+.tl .yr{font-size:11px;color:var(--muted);height:22px;margin-bottom:22px}
+.tl .pt.lts .yr{color:var(--orange);font-weight:700}
+.tl .dot{width:46px;height:46px;border-radius:50%;background:var(--blue);color:#fff;font:700 15px var(--head);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:3px solid #fff;box-shadow:0 0 0 1px #ddd}
+.tl .pt.lts .dot{width:56px;height:56px;background:var(--orange);font-size:18px;margin-top:-5px;margin-bottom:7px}
+.tl .ft{font-size:12px;line-height:1.3}
+
+table.cmp{border-collapse:collapse;font-size:12.5px;flex:1.35;align-self:flex-start}
+table.cmp th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:4px 10px;border-bottom:2px solid #ddd}
+table.cmp td{padding:3px 10px;white-space:nowrap;border-bottom:1px solid #e6e6e6;vertical-align:top}
+table.cmp td:first-child{font-family:var(--mono);font-size:12px}
+table.cmp.msg td:first-child{font-family:var(--body);font-size:12px;font-weight:700;color:var(--esp);white-space:nowrap;width:1%}
+table.cmp.msg td:last-child{font-family:var(--mono);font-size:11px;color:var(--esp);white-space:normal;line-height:1.35}
+table.cmp.msg code{font-family:var(--mono);background:#e8e8e8;border-radius:3px;padding:0 4px}
+table.cmp .y{color:#2e7d32;font-weight:700;white-space:nowrap} table.cmp .p{color:var(--orange);font-weight:700;white-space:nowrap} table.cmp .n{color:#c62828;font-weight:700}
+
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card.era{padding:16px 18px}
+.era .yrs{font-size:12px;color:var(--orange);font-weight:700;margin-top:2px}
+ul.tlist{margin:14px 0 0;padding-left:0;list-style:none;font-size:14px;line-height:1.45}
+ul.tlist li{margin-bottom:12px;padding-left:10px;border-left:2px solid #ddd}
+ul.tlist b{color:var(--esp)}
+
+/* ---------- detay penceresi (modal) ---------- */
+.slide .mdata{display:none}
+.hasmodal{cursor:pointer;position:relative;transition:box-shadow .15s,transform .15s}
+.hasmodal:hover{box-shadow:0 8px 22px rgba(0,0,0,.13);transform:translateY(-2px)}
+.hasmodal p:last-child{padding-right:58px}
+.hasmodal .more{position:absolute;right:16px;bottom:12px;font-size:11px;font-weight:700;color:var(--orange);letter-spacing:.03em}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.74);display:none;align-items:center;justify-content:center;z-index:10;padding:28px}
+#modal.show{display:flex}
+#modal .mbox{position:relative;background:var(--paper);color:var(--ink);border-radius:14px;width:min(920px,100%);max-height:88vh;overflow:auto;padding:30px 34px 26px;box-shadow:0 30px 90px rgba(0,0,0,.55);scrollbar-color:#c9c2bb transparent;scrollbar-width:thin}
+#modal .x{position:absolute;top:16px;right:18px;width:32px;height:32px;border:0;border-radius:50%;background:var(--card);color:var(--ink);font-size:15px;cursor:pointer;line-height:1}
+#modal .x:hover{background:var(--orange);color:#fff}
+#modal .mt{font-family:var(--head);font-size:27px;line-height:1.2;margin:2px 0 6px;color:var(--esp)}
+#modal .msub{font-size:14.5px;color:var(--muted);margin-bottom:20px;padding-right:40px}
+#modal .msec{margin-bottom:18px}
+#modal .msec.last{margin-bottom:4px}
+#modal .msec h4{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin:0 0 8px;padding-bottom:5px;border-bottom:1px solid #eee}
+#modal .msec p{font-size:14px;line-height:1.5}
+#modal ul.b{font-size:14px;line-height:1.5}
+#modal ul.b li{margin-bottom:7px}
+#modal code{font-family:var(--mono);font-size:12.5px;background:var(--card);border-radius:4px;padding:1px 6px;color:var(--esp)}
+#modal code.warn{display:inline-block;margin-top:4px;background:var(--esp);color:var(--code-lbl);padding:4px 10px;font-size:12px}
+#modal .mtable{width:100%;border-collapse:collapse;font-size:13px;margin:0 0 20px}
+#modal .mtable th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-bottom:2px solid #e0e0e0}
+#modal .mtable td{padding:7px 10px;border-bottom:1px solid #eee;vertical-align:top}
+#modal .mtable td:first-child{font-weight:700;color:var(--esp);white-space:nowrap}
+#modal .mtable tr td:nth-child(2){color:var(--muted)}
+#modal .mroles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+#modal .mroles div{background:var(--card);border-radius:10px;padding:12px 14px}
+#modal .mroles b{display:block;font-size:13px;color:var(--esp);margin-bottom:4px}
+#modal .mroles span{font-size:12.5px;line-height:1.45;color:var(--ink)}
+
+.steps.big{flex:1;justify-content:space-around}
+.steps.big .step .n{width:36px;height:36px;font-size:16px}
+.steps.big .step h3{font-size:17px;margin-bottom:3px}
+.steps.big .step p{font-size:13.5px;line-height:1.45;color:var(--ink)}
+
+.stages{display:flex;flex-direction:column;gap:10px}
+.stage{display:flex;gap:12px;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid #e6e6e6}
+.stage.last{border-bottom:0;padding-bottom:0}
+.stage .sn{width:28px;height:28px;border-radius:50%;background:var(--esp);color:#fff;font:700 13px var(--head);display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px}
+.stage h3{font-size:15px;margin-bottom:3px}
+.stage p{font-size:12.5px;line-height:1.45;color:var(--muted)}
+.stage code{font-family:var(--mono);font-size:11.5px;background:#ececec;border-radius:3px;padding:0 4px}
+pre.mcode{font-family:var(--mono);font-size:12px;line-height:1.5;background:var(--esp);color:var(--code-txt);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:8px 0;white-space:pre}
+
+.usage{display:flex;flex-direction:column;gap:5px}
+.u{display:flex;align-items:center;gap:8px;font-size:11.5px}
+.ul{width:50px;color:var(--esp);font-weight:700;flex:none}
+.ub{flex:1;height:9px;background:#e2e2e2;border-radius:5px;overflow:hidden}
+.ub i{display:block;height:100%;background:var(--blue);border-radius:5px}
+.u.top .ub i{background:var(--orange)}
+.uv{width:42px;text-align:right;color:var(--muted);font-weight:700;flex:none}
+
+/* ---------- steps ---------- */
+.steps{display:flex;flex-direction:column;gap:9px}
+.step{display:flex;gap:12px;align-items:flex-start}
+.step .n{width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;font:700 13px var(--head);display:flex;align-items:center;justify-content:center;flex:none}
+.step.o .n{background:var(--orange)}
+.step h3{font-size:14.5px;margin:2px 0 1px} .step p{font-size:12.5px;color:var(--muted)}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;left:0;right:0;bottom:0;height:3px;background:#2a1f1a;z-index:5}
+body.notes-open #hud{right:min(360px,42vw)}
+#hud i{display:block;height:100%;background:var(--orange);width:0;transition:width .25s}
+#ctl{position:fixed;right:18px;bottom:14px;display:flex;gap:6px;align-items:center;z-index:6;color:#c9bfb5;font-size:12px}
+body.notes-open #ctl{right:calc(min(360px,42vw) + 18px)}
+#ctl button{background:#2a1f1a;color:#e6ddd4;border:1px solid #3a2c23;border-radius:8px;width:34px;height:30px;cursor:pointer;font-size:14px}
+#ctl button:hover{background:#3a2c23}
+#ctl .cnt{min-width:60px;text-align:center;font-family:var(--mono)}
+#notes{position:fixed;top:0;right:0;bottom:0;width:min(360px,42vw);background:#1a1411;color:#e6ddd4;padding:22px 24px;transform:translateX(100%);transition:transform .25s;z-index:7;overflow:auto;font-size:14px;line-height:1.5;border-left:1px solid #3a2c23}
+body.notes-open #notes{transform:none}
+#notes h4{margin:0 0 12px;color:var(--orange-soft);font:700 12px var(--body);letter-spacing:.12em;text-transform:uppercase}
+#help{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:9}
+#help.show{display:flex}
+#help div{background:#1a1411;color:#e6ddd4;padding:26px 30px;border-radius:14px;width:440px;font-size:14px;line-height:1.9;border:1px solid #3a2c23}
+#help h4{margin:0 0 8px;color:var(--orange-soft)}
+#help kbd{font:600 12px var(--mono);background:#2a1f1a;border:1px solid #3a2c23;border-radius:4px;padding:2px 7px;margin-right:6px}
+#online{position:fixed;left:18px;bottom:12px;font-size:11px;color:#8a7f76;z-index:6}
+#online b{color:#8BD17C} #online b.off{color:#FF8A80}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="stage">
+
+<!-- ============ 1. KAPAK ============ -->
+<section class="slide dark">
+  <div style="margin-top:90px">
+    <div class="ic xl"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 640 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M192 384h192c53 0 96-43 96-96h32c70.6 0 128-57.4 128-128S582.6 32 512 32H120c-13.3 0-24 10.7-24 24v232c0 53 43 96 96 96zM512 96c35.3 0 64 28.7 64 64s-28.7 64-64 64h-32V96h32zm47.7 384H48.3c-47.6 0-61-64-36-64h583.3c25 0 11.8 64-35.9 64z"></path></svg></div>
+    <h1 style="font-size:48px;margin:34px 0 12px">Java 8: Java'nın en stabil ve<br>olgun sürümlerinden biri</h1>
+    <p style="font-family:var(--head);font-style:italic;font-size:26px;color:#F0C79A">…ve Java 8'den Java 21'e giden yolda neler değişti</p>
+    <p style="margin-top:70px"><span class="tag">Java 8 · 2014</span> &nbsp;<span class="tag orange">Java 21 · 2023</span> &nbsp;<span class="tag" style="background:var(--esp3)">▶ Çalıştır düğmesiyle deneyin</span></p>
+  </div>
+  <aside class="notes">Açılış: Sunum üç bölüm. Önce Java 8'i bu kadar stabil ve kalıcı yapan şeyi, sonra Java 9–17 yolculuğu, son olarak Java 21 ile ekibimiz için ne değişeceği. Kod kartları düzenlenebilir ve "Çalıştır" ile gerçek bir JDK 21 üzerinde (Compiler Explorer) çalışır; katılımcılardan kodu bozmalarını isteyin — derleyici hatalarını canlı görmek en öğretici kısım.</aside>
+</section>
+
+<!-- ============ 1b. HOŞ GELDİNİZ + KRONOLOJİ ============ -->
+<section class="slide">
+  <p class="kicker">Java dünyasına hoş geldiniz</p>
+  <h1 style="margin-bottom:6px">30 yılda Java: kısa bir kronoloji</h1>
+  <p class="muted" style="margin-bottom:18px">1991'de bir set-üstü kutu projesi olarak doğdu; bugün dünyanın en yaygın kurumsal platformu.</p>
+  <div class="grid4 fill">
+    <div class="card era"><div class="iconrow" style="align-items:center"><div class="ic s"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 640 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M192 384h192c53 0 96-43 96-96h32c70.6 0 128-57.4 128-128S582.6 32 512 32H120c-13.3 0-24 10.7-24 24v232c0 53 43 96 96 96zM512 96c35.3 0 64 28.7 64 64s-28.7 64-64 64h-32V96h32zm47.7 384H48.3c-47.6 0-61-64-36-64h583.3c25 0 11.8 64-35.9 64z"></path></svg></div><div><h3>Doğuş</h3><p class="yrs">1991 – 1998</p></div></div>
+      <ul class="tlist">
+        <li><b>1991</b> Sun'da "Green Project"; James Gosling dili <i>Oak</i> adıyla yazar.</li>
+        <li><b>1995</b> Java 1.0 duyurulur: <i>"Write once, run anywhere"</i>. Netscape tarayıcıya ekler.</li>
+        <li><b>1996</b> JDK 1.0 yayınlanır; JVM ve bytecode fikri.</li>
+        <li><b>1998</b> Java 2 (J2SE 1.2): Swing, Collections, JIT.</li>
+      </ul></div>
+    <div class="card era"><div class="iconrow" style="align-items:center"><div class="ic s blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M436 480h-20V24c0-13.255-10.745-24-24-24H56C42.745 0 32 10.745 32 24v456H12c-6.627 0-12 5.373-12 12v20h448v-20c0-6.627-5.373-12-12-12zM128 76c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v40c0 6.627-5.373 12-12 12h-40c-6.627 0-12-5.373-12-12V76zm0 96c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v40c0 6.627-5.373 12-12 12h-40c-6.627 0-12-5.373-12-12v-40zm52 148h-40c-6.627 0-12-5.373-12-12v-40c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v40c0 6.627-5.373 12-12 12zm76 160h-64v-84c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v84zm64-172c0 6.627-5.373 12-12 12h-40c-6.627 0-12-5.373-12-12v-40c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v40zm0-96c0 6.627-5.373 12-12 12h-40c-6.627 0-12-5.373-12-12v-40c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v40zm0-96c0 6.627-5.373 12-12 12h-40c-6.627 0-12-5.373-12-12V76c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v40z"></path></svg></div><div><h3>Kurumsal çağ</h3><p class="yrs">1999 – 2009</p></div></div>
+      <ul class="tlist">
+        <li><b>1999</b> J2EE: uygulama sunucuları, servlet, EJB.</li>
+        <li><b>2002</b> Spring Framework doğar; Eclipse IDE açık kaynak olur.</li>
+        <li><b>2004</b> Java 5: generics, annotation, enum, autoboxing.</li>
+        <li><b>2006</b> Sun, Java'yı GPL ile açar → <b>OpenJDK</b>.</li>
+      </ul></div>
+    <div class="card era"><div class="iconrow" style="align-items:center"><div class="ic s esp"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M504 255.531c.253 136.64-111.18 248.372-247.82 248.468-59.015.042-113.223-20.53-155.822-54.911-11.077-8.94-11.905-25.541-1.839-35.607l11.267-11.267c8.609-8.609 22.353-9.551 31.891-1.984C173.062 425.135 212.781 440 256 440c101.705 0 184-82.311 184-184 0-101.705-82.311-184-184-184-48.814 0-93.149 18.969-126.068 49.932l50.754 50.754c10.08 10.08 2.941 27.314-11.313 27.314H24c-8.837 0-16-7.163-16-16V38.627c0-14.254 17.234-21.393 27.314-11.314l49.372 49.372C129.209 34.136 189.552 8 256 8c136.81 0 247.747 110.78 248 247.531zm-180.912 78.784l9.823-12.63c8.138-10.463 6.253-25.542-4.21-33.679L288 256.349V152c0-13.255-10.745-24-24-24h-16c-13.255 0-24 10.745-24 24v135.651l65.409 50.874c10.463 8.137 25.541 6.253 33.679-4.21z"></path></svg></div><div><h3>Oracle dönemi</h3><p class="yrs">2010 – 2013</p></div></div>
+      <ul class="tlist">
+        <li><b>2010</b> Oracle, Sun'ı satın alır; Java'nın sahibi değişir.</li>
+        <li><b>2011</b> Java 7: try-with-resources, diamond, NIO.2.</li>
+        <li><b>2011</b> Android ile Java, mobilde en yaygın dil olur.</li>
+        <li><b>2013</b> Java 8 için iki yıllık bekleyiş; Spring Boot duyurulur.</li>
+      </ul></div>
+    <div class="card era"><div class="iconrow" style="align-items:center"><div class="ic s"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M505.12019,19.09375c-1.18945-5.53125-6.65819-11-12.207-12.1875C460.716,0,435.507,0,410.40747,0,307.17523,0,245.26909,55.20312,199.05238,128H94.83772c-16.34763.01562-35.55658,11.875-42.88664,26.48438L2.51562,253.29688A28.4,28.4,0,0,0,0,264a24.00867,24.00867,0,0,0,24.00582,24H127.81618l-22.47457,22.46875c-11.36521,11.36133-12.99607,32.25781,0,45.25L156.24582,406.625c11.15623,11.1875,32.15619,13.15625,45.27726,0l22.47457-22.46875V488a24.00867,24.00867,0,0,0,24.00581,24,28.55934,28.55934,0,0,0,10.707-2.51562l98.72834-49.39063c14.62888-7.29687,26.50776-26.5,26.50776-42.85937V312.79688c72.59753-46.3125,128.03493-108.40626,128.03493-211.09376C512.07526,76.5,512.07526,51.29688,505.12019,19.09375ZM384.04033,168A40,40,0,1,1,424.05,128,40.02322,40.02322,0,0,1,384.04033,168Z"></path></svg></div><div><h3>Modern Java</h3><p class="yrs">2014 – 2025</p></div></div>
+      <ul class="tlist">
+        <li><b>2014</b> <b>Java 8</b>: lambda, stream — bu sunumun konusu.</li>
+        <li><b>2017</b> Java 9 modüller; 6 aylık sürüm döngüsü; Java EE → Eclipse (Jakarta).</li>
+        <li><b>2018 · 2021 · 2023</b> LTS sürümleri: 11, 17, <b>21</b>.</li>
+        <li><b>2025</b> Java 25 LTS; Java 30 yaşında.</li>
+      </ul></div>
+  </div>
+  <p class="small muted" style="margin-top:14px;text-align:center"><span class="tag orange">1995'ten beri</span> &nbsp; 25+ büyük sürüm · milyonlarca geliştirici · bankacılıktan Android'e, büyük veriden (Hadoop, Spark, Kafka) mikroservislere</p>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Isınma slaytı: 1-2 dakika. Ekipte Java'ya yeni olanlar için bağlam: Java bir dil + bir sanal makine (JVM) + devasa bir ekosistem. 2006'daki OpenJDK kararı sonraki slaytın temeli; burada altını çizin. Android notu: Google, Java dilini kullandı ama JVM yerine kendi çalışma zamanını yazdı (Dalvik/ART).</aside>
+</section>
+
+<!-- ============ 1c. JAVA VE YAPAY ZEKÂ ============ -->
+<section class="slide">
+  <p class="kicker">Java ve yapay zekâ</p>
+  <h1>Java'nın yapay zekâya mirası: açık kod</h1>
+  <div class="row fill">
+    <div class="card tint col" style="width:470px;justify-content:center">
+      <div class="iconrow" style="align-items:center;margin-bottom:14px"><div class="ic m"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 640 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M32,224H64V416H32A31.96166,31.96166,0,0,1,0,384V256A31.96166,31.96166,0,0,1,32,224Zm512-48V448a64.06328,64.06328,0,0,1-64,64H160a64.06328,64.06328,0,0,1-64-64V176a79.974,79.974,0,0,1,80-80H288V32a32,32,0,0,1,64,0V96H464A79.974,79.974,0,0,1,544,176ZM264,256a40,40,0,1,0-40,40A39.997,39.997,0,0,0,264,256Zm-8,128H192v32h64Zm96,0H288v32h64ZM456,256a40,40,0,1,0-40,40A39.997,39.997,0,0,0,456,256Zm-8,128H384v32h64ZM640,256V384a31.96166,31.96166,0,0,1-32,32H576V224h32A31.96166,31.96166,0,0,1,640,256Z"></path></svg></div><h2 style="margin:0">Tezim</h2></div>
+      <p style="font-size:15.5px;line-height:1.5">Bugünkü yapay zekânın bu noktaya gelmesinde Java'nın payı çok büyüktür. Java her zaman <b>açık kaynak yazılımı destekledi</b> ve kodun açık olması gerektiğini savundu. Bu sayede piyasadaki kodlar açık yazılmaya başladı; <b>Microsoft ekosistemi bile</b> bu yaklaşımı ister istemez benimsedi.</p>
+      <p style="font-size:15.5px;line-height:1.5;margin-top:12px;font-weight:700;color:var(--orange)">Yapay zekâ bugün çok iyi kod yazıyorsa, bunda Java'nın payı çok büyüktür.</p>
+    </div>
+    <div class="col fill" style="gap:10px">
+      <div class="card iconrow" style="padding:12px 16px"><div class="ic s blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M400 256H152V152.9c0-39.6 31.7-72.5 71.3-72.9 40-.4 72.7 32.1 72.7 72v16c0 13.3 10.7 24 24 24h32c13.3 0 24-10.7 24-24v-16C376 68 307.5-.3 223.5 0 139.5.3 72 69.5 72 153.5V256H48c-26.5 0-48 21.5-48 48v160c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V304c0-26.5-21.5-48-48-48z"></path></svg></div><div><h3>2006: Dilin kendisi açıldı</h3><p>Sun, Java'yı GPL lisansıyla açtı → OpenJDK. Derleyici, JVM ve standart kütüphane herkesin okuyup katkı verebildiği kod oldu. Bugün Oracle, Amazon, Microsoft, Red Hat, IBM aynı OpenJDK'ya katkı veriyor.</p></div></div>
+      <div class="card iconrow" style="padding:12px 16px"><div class="ic s"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12.41 148.02l232.94 105.67c6.8 3.09 14.49 3.09 21.29 0l232.94-105.67c16.55-7.51 16.55-32.52 0-40.03L266.65 2.31a25.607 25.607 0 0 0-21.29 0L12.41 107.98c-16.55 7.51-16.55 32.53 0 40.04zm487.18 88.28l-58.09-26.33-161.64 73.27c-7.56 3.43-15.59 5.17-23.86 5.17s-16.29-1.74-23.86-5.17L70.51 209.97l-58.1 26.33c-16.55 7.5-16.55 32.5 0 40l232.94 105.59c6.8 3.08 14.49 3.08 21.29 0L499.59 276.3c16.55-7.5 16.55-32.5 0-40zm0 127.8l-57.87-26.23-161.86 73.37c-7.56 3.43-15.59 5.17-23.86 5.17s-16.29-1.74-23.86-5.17L70.29 337.87 12.41 364.1c-16.55 7.5-16.55 32.5 0 40l232.94 105.59c6.8 3.08 14.49 3.08 21.29 0L499.59 404.1c16.55-7.5 16.55-32.5 0-40z"></path></svg></div><div><h3>Ekosistem açık doğdu</h3><p>Apache (Tomcat, Maven, Lucene, Hadoop, Spark, Kafka), Eclipse, Spring, Hibernate: kurumsal dünyada "açık kaynak kütüphane kullanmak" normali Java ile yerleşti. Maven Central'da milyonlarca açık kütüphane sürümü var.</p></div></div>
+      <div class="card iconrow" style="padding:12px 16px"><div class="ic s esp"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M0 93.7l183.6-25.3v177.4H0V93.7zm0 324.6l183.6 25.3V268.4H0v149.9zm203.8 28L448 480V268.4H203.8v177.9zm0-380.6v180.1H448V32L203.8 65.7z"></path></svg></div><div><h3>Microsoft'un dönüşü</h3><p>2014 .NET Core açık kaynak · 2015 VS Code · 2018 GitHub satın alındı · 2021 "Microsoft Build of OpenJDK" ve OpenJDK'ya katkı. Kapalı kod ekosistemi, açık modelle rekabet edemedi.</p></div></div>
+      <div class="card iconrow" style="padding:12px 16px"><div class="ic s blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 496 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"></path></svg></div><div><h3>Açık kod → yapay zekânın eğitim verisi</h3><p>Kod üreten modeller GitHub'daki açık depolarla eğitildi; Java bu derlemelerdeki en büyük birkaç dilden biri. Modellerin öğrendiği "iyi kod" büyük ölçüde açık kaynak Java projelerinden geliyor. Büyük veri altyapısının kendisi de (Hadoop, Spark, Kafka) JVM üzerine kuruldu.</p></div></div>
+    </div>
+  </div>
+  <div class="pipe" style="margin:14px 0 0"><span class="src" style="width:190px">Açık JDK (2006)</span><i></i><span style="width:190px">Açık ekosistem</span><i></i><span style="width:190px">Açık kod normali</span><i></i><span style="width:190px">Devasa eğitim verisi</span><i></i><span class="end" style="width:190px">Kod yazan YZ</span></div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Bu slayt sunumu yapanın kişisel tezidir; tartışma açmak için idealdir. Destekleyen olgular: 2006 OpenJDK (GPL), Apache/Eclipse ekosistemi, Microsoft'un 2014 sonrası açık kaynak dönüşü ve OpenJDK'ya katılması, kod modellerinin (Codex, Copilot, StarCoder/The Stack) açık GitHub kodu ile eğitilmesi ve Java'nın bu derlemelerde ilk sıralarda olması. Olası itirazlar: açık kaynak hareketi Java'dan eskidir (GNU 1983, Linux 1991); Python ve JavaScript de eğitim verisinde büyük paya sahip; Sun 2006'ya kadar Java'yı kapalı tutmuştu. Cevap: Java'nın farkı, açık kaynağı kurumsal dünyada 'varsayılan' hâline getirmesi ve büyük veri altyapısını (Hadoop, Spark, Kafka) taşımasıdır.</aside>
+</section>
+
+<!-- ============ 2. GÜNDEM ============ -->
+<section class="slide">
+  <p class="kicker">Gündem</p>
+  <h1>Bugün neleri konuşacağız?</h1>
+  <div class="grid3">
+    <div class="card"><div class="ic l"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z"></path></svg></div><h2 style="margin-top:22px">1 · Java 8: Stabil ve olgun</h2>
+      <ul class="b"><li>2014'te ne oldu?</li><li>Lambda, Stream, Optional, java.time</li><li>Neden yıllarca vazgeçemedik?</li></ul></div>
+    <div class="card"><div class="ic l blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M573.19 402.67l-139.79-320C428.43 71.29 417.6 64 405.68 64h-97.59l2.45 23.16c.5 4.72-3.21 8.84-7.96 8.84h-29.16c-4.75 0-8.46-4.12-7.96-8.84L267.91 64h-97.59c-11.93 0-22.76 7.29-27.73 18.67L2.8 402.67C-6.45 423.86 8.31 448 30.54 448h196.84l10.31-97.68c.86-8.14 7.72-14.32 15.91-14.32h68.8c8.19 0 15.05 6.18 15.91 14.32L348.62 448h196.84c22.23 0 36.99-24.14 27.73-45.33zM260.4 135.16a8 8 0 0 1 7.96-7.16h39.29c4.09 0 7.53 3.09 7.96 7.16l4.6 43.58c.75 7.09-4.81 13.26-11.93 13.26h-40.54c-7.13 0-12.68-6.17-11.93-13.26l4.59-43.58zM315.64 304h-55.29c-9.5 0-16.91-8.23-15.91-17.68l5.07-48c.86-8.14 7.72-14.32 15.91-14.32h45.15c8.19 0 15.05 6.18 15.91 14.32l5.07 48c1 9.45-6.41 17.68-15.91 17.68z"></path></svg></div><h2 style="margin-top:22px">2 · Java 9 → 17: Yolculuk</h2>
+      <ul class="b"><li>Modüller, 6 aylık sürüm döngüsü, LTS</li><li>var, Text Blocks, Records</li><li>Sealed, Switch, Pattern Matching</li></ul></div>
+    <div class="card"><div class="ic l esp"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M505.12019,19.09375c-1.18945-5.53125-6.65819-11-12.207-12.1875C460.716,0,435.507,0,410.40747,0,307.17523,0,245.26909,55.20312,199.05238,128H94.83772c-16.34763.01562-35.55658,11.875-42.88664,26.48438L2.51562,253.29688A28.4,28.4,0,0,0,0,264a24.00867,24.00867,0,0,0,24.00582,24H127.81618l-22.47457,22.46875c-11.36521,11.36133-12.99607,32.25781,0,45.25L156.24582,406.625c11.15623,11.1875,32.15619,13.15625,45.27726,0l22.47457-22.46875V488a24.00867,24.00867,0,0,0,24.00581,24,28.55934,28.55934,0,0,0,10.707-2.51562l98.72834-49.39063c14.62888-7.29687,26.50776-26.5,26.50776-42.85937V312.79688c72.59753-46.3125,128.03493-108.40626,128.03493-211.09376C512.07526,76.5,512.07526,51.29688,505.12019,19.09375ZM384.04033,168A40,40,0,1,1,424.05,128,40.02322,40.02322,0,0,1,384.04033,168Z"></path></svg></div><h2 style="margin-top:22px">3 · Java 21</h2>
+      <ul class="b"><li>Virtual Threads, Sequenced Collections</li><li>Kalıcı özellikler ve 'preview' olanlar</li><li>Yardımcı NPE mesajı ve günlük kazanımlar</li></ul></div>
+  </div>
+  <div class="card tint" style="margin-top:22px;display:flex;gap:16px;align-items:center">
+    <div class="ic m"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 320 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M296 160H180.6l42.6-129.8C227.2 15 215.7 0 200 0H56C44 0 33.8 8.9 32.2 20.8l-32 240C-1.7 275.2 9.5 288 24 288h118.7L96.6 482.5c-3.6 15.2 8 29.5 23.3 29.5 8.4 0 16.4-4.4 20.8-12l176-304c9.3-15.9-2.2-36-20.7-36z"></path></svg></div>
+    <div><h3>Bu sunum etkileşimli</h3><p class="small">Koyu kod kartları gerçek bir editördür. Kodu değiştirin, <b>▶ Çalıştır</b>'a (veya <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) basın; kod godbolt.org üzerindeki JDK 21'de derlenip çalışır, çıktı hemen altında görünür. İnternet bağlantısı gerekir.</p></div>
+  </div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Gündemi kısaca geçin. Kod yazmayanlar için: 2. ve 3. bölümde her özellik "bu bize ne kazandırır" diliyle anlatılacak. Etkileşimli kartları ilk slaytta bir kez gösterin.</aside>
+</section>
+
+<!-- ============ 3. BÖLÜM 1 ============ -->
+<section class="slide dark">
+  <div style="margin-top:210px;display:flex;justify-content:space-between;align-items:center">
+    <div><p class="kicker">Bölüm 1</p><h1 style="font-size:46px;margin-bottom:10px">Java 8: Stabil ve olgun bir sürüm</h1>
+      <p style="font-family:var(--head);font-style:italic;font-size:21px;color:#C9BFB5">Mart 2014 — Java'nın tarihindeki en büyük dil değişikliği</p></div>
+    <div class="ic xl"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z"></path></svg></div>
+  </div>
+</section>
+
+<!-- ============ 4. 2014 ============ -->
+<section class="slide">
+  <p class="kicker">Java 8 · 2014</p>
+  <h1>Java'nın en büyük sıçraması</h1>
+  <div class="row fill">
+    <div class="col" style="width:520px;gap:14px">
+      <div class="card stat"><b>2014</b><span>Mart ayında yayınlandı</span></div>
+      <div class="card stat"><b>~3 yıl</b><span>Java 7'den sonra bekleyiş (2011 → 2014)</span></div>
+      <div class="card stat"><b>%84</b><span>2020'de üretimdeki Java uygulamalarının payı (New Relic)</span></div>
+      <div class="card stat"><b>%29</b><span>2024'te hâlâ Java 8 çalıştıran uygulamalar (New Relic)</span></div>
+    </div>
+    <div class="col fill">
+      <h2>Neden bu kadar stabil ve olgun?</h2>
+      <ul class="b">
+        <li><b>Dil paradigması değişti:</b> Java ilk kez fonksiyonel programlamayı benimsedi (lambda, stream).</li>
+        <li><b>Zamanlama mükemmeldi:</b> bulut, mikroservis ve Spring Boot dalgası tam Java 8 ile yükseldi.</li>
+        <li><b>Uzun ve ücretsiz destek:</b> Oracle ve OpenJDK sağlayıcıları yıllarca güncelledi.</li>
+        <li><b>Geriye uyumluluk:</b> Java 7 kodu değişmeden çalıştı; risk düşük, kazanç yüksekti.</li>
+        <li><b>Sonraki adım çok kırıcıydı:</b> Java 9 modülleri yüzünden herkes 8'de "demir attı".</li>
+      </ul>
+      <div class="card" style="margin-top:auto;padding:12px 16px">
+        <h3 style="font-size:13.5px;margin-bottom:1px">Bugün üretimde hangi Java çalışıyor?</h3>
+        <p class="muted" style="font-size:10.5px;margin-bottom:9px">New Relic 2024 — uygulamaların sürüm dağılımı</p>
+        <div class="usage">
+          <div class="u top"><span class="ul">Java 17</span><span class="ub"><i style="width:100%"></i></span><span class="uv">%35,4</span></div>
+          <div class="u"><span class="ul">Java 11</span><span class="ub"><i style="width:93%"></i></span><span class="uv">%32,9</span></div>
+          <div class="u"><span class="ul">Java 8</span><span class="ub"><i style="width:81%"></i></span><span class="uv">%28,8</span></div>
+          <div class="u"><span class="ul">Java 21</span><span class="ub"><i style="width:4%"></i></span><span class="uv">%1,4</span></div>
+          <div class="u"><span class="ul">Java 7</span><span class="ub"><i style="width:1.5%"></i></span><span class="uv">~%0,3</span></div>
+          <div class="u"><span class="ul">Diğer</span><span class="ub"><i style="width:5%"></i></span><span class="uv">&lt;%2</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">İstatistikler New Relic "State of the Java Ecosystem" raporlarından (2020 ve 2024). Vurgu: 10 yıl sonra bile her üç uygulamadan biri Java 8. Bu hem bir başarı hem de bir uyarı işareti. Sağ alttaki grafik 2024 dağılımını gösteriyor: üretimdeki uygulamaların yaklaşık yüzde 97'si üç LTS sürümünde toplanmış durumda (17, 11 ve 8) ve Java 21'in payı henüz yüzde 1,4. Yani ekosistem büyük ama yavaş hareket ediyor; bizim Java 21'e geçmiş olmamız bu tabloda erken davranmak demek.</aside>
+</section>
+
+<!-- ============ 5. LAMBDA ============ -->
+<section class="slide">
+  <p class="kicker">Java 8 · Lambda</p>
+  <h1>Davranışı bir değer gibi taşımak</h1>
+  <div class="row fill">
+    <div class="runner" data-ex="lambda7" data-label="Java 7 — anonim sınıf (JDK 21'de de çalışır)"></div>
+    <div class="runner" data-ex="lambda8" data-label="Java 8 — lambda + metot referansı + fonksiyonel arayüz"></div>
+  </div>
+  <p class="ide-note"><b>Ekip için anlamı:</b> 6 satır → 1 satır. Kod, iş kuralını ("ada göre sırala") doğrudan söyler; tören (boilerplate) kaybolur. Deneyin: sağdaki <code>reversed()</code>'ı silip yeniden çalıştırın.</p>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Lambda, Java 8'in kalbi. Sadece kısa yazım değil: Stream API, CompletableFuture ve modern kütüphanelerin (Spring, Mockito, AssertJ) tamamı bunun üzerine kurulu. Fonksiyonel arayüz = tek soyut metodu olan arayüz. Her iki kartı da çalıştırın; sol karttaki eski kodun JDK 21'de aynen çalışması "geriye uyumluluk" mesajını verir.</aside>
+</section>
+
+<!-- ============ 6. STREAM ============ -->
+<section class="slide">
+  <p class="kicker">Java 8 · Stream API</p>
+  <h1>"Nasıl" yerine "ne" istediğini söyle</h1>
+  <div class="row fill">
+    <div class="runner" data-ex="stream7" data-label="Java 7 — döngü, if, geçici liste"></div>
+    <div class="runner" data-ex="stream8" data-label="Java 8 — boru hattı (pipeline)"></div>
+  </div>
+  <div class="pipe"><span class="src">siparişler</span><i></i><span>filter</span><i></i><span>map</span><i></i><span>sorted</span><i></i><span class="end">collect</span></div>
+  <p class="small muted" style="text-align:center;font-style:italic">Her adım tek bir iş kuralı; okunması SQL'e benzer: WHERE → SELECT → ORDER BY. Deneyin: 1000 eşiğini 500 yapın.</p>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Analistler için: stream zinciri, gereksinim cümlesine bire bir benzer ("1000 TL üstü siparişlerin müşteri adlarını sıralı ver"). Testçiler için: her adım ayrı test edilebilir küçük bir fonksiyon. Uyarı: aşırı uzun zincirler okunurluğu bozar.</aside>
+</section>
+
+<!-- ============ 7. OPTIONAL + JAVA.TIME ============ -->
+<section class="slide">
+  <p class="kicker">Java 8 · Optional &amp; java.time</p>
+  <h1>İki kronik derdin sonu: null ve tarih</h1>
+  <div class="row fill">
+    <div class="runner" data-ex="optional" data-label="Optional — 'değer olmayabilir' niyetini açıkça söyler"></div>
+    <div class="runner" data-ex="javatime" data-label="java.time — Date/Calendar kâbusunun yerine"></div>
+  </div>
+  <div class="grid3" style="margin-top:14px">
+    <div class="iconrow"><div class="ic s blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M466.5 83.7l-192-80a48.15 48.15 0 0 0-36.9 0l-192 80C27.7 91.1 16 108.6 16 128c0 198.5 114.5 335.7 221.5 380.3 11.8 4.9 25.1 4.9 36.9 0C360.1 472.6 496 349.3 496 128c0-19.4-11.7-36.9-29.5-44.3zM256.1 446.3l-.1-381 175.9 73.3c-3.3 151.4-82.1 261.1-175.8 307.7z"></path></svg></div><div><h3>NPE azalır</h3><p>Üretimdeki en yaygın hata sınıfı görünür ve yönetilebilir olur.</p></div></div>
+    <div class="iconrow"><div class="ic s"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M0 464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V192H0v272zm320-196c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12h-40c-6.6 0-12-5.4-12-12v-40zm0 128c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12h-40c-6.6 0-12-5.4-12-12v-40zM192 268c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12h-40c-6.6 0-12-5.4-12-12v-40zm0 128c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12h-40c-6.6 0-12-5.4-12-12v-40zM64 268c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12H76c-6.6 0-12-5.4-12-12v-40zm0 128c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12H76c-6.6 0-12-5.4-12-12v-40zM400 64h-48V16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v48H160V16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v48H48C21.5 64 0 85.5 0 112v48h448v-48c0-26.5-21.5-48-48-48z"></path></svg></div><div><h3>Tarih kuralları netleşir</h3><p>"14 gün sonra", "ay sonu", "sonraki Pazartesi" gibi analiz kuralları tek satır.</p></div></div>
+    <div class="iconrow"><div class="ic s esp"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 480 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M477.7 186.1L309.5 18.3c-3.1-3.1-8.2-3.1-11.3 0l-34 33.9c-3.1 3.1-3.1 8.2 0 11.3l11.2 11.1L33 316.5c-38.8 38.7-45.1 102-9.4 143.5 20.6 24 49.5 36 78.4 35.9 26.4 0 52.8-10 72.9-30.1l246.3-245.7 11.2 11.1c3.1 3.1 8.2 3.1 11.3 0l34-33.9c3.1-3 3.1-8.1 0-11.2zM318 256H161l148-147.7 78.5 78.3L318 256z"></path></svg></div><div><h3>Test etmesi kolay</h3><p>Sabit tarih ile (Clock.fixed) zamana bağlı senaryolar tekrarlanabilir.</p></div></div>
+  </div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Optional'ı alan (field) veya parametre olarak değil, dönüş tipi olarak kullanın. java.time: java.util.Date ve Calendar'ın mutable, sıfır-indeksli ay gibi tuzakları ortadan kalktı. Sol karttaki try/catch, Java 14'ün "yardımcı NPE mesajı"nı da gösteriyor: hata hangi ifadenin null olduğunu söylüyor.</aside>
+</section>
+
+<!-- ============ 8. DİĞER HEDİYELER ============ -->
+<section class="slide">
+  <p class="kicker">Java 8 · Diğerleri</p>
+  <h1>Aynı paketten çıkan diğer hediyeler</h1>
+  <p class="muted" style="margin:-10px 0 16px;font-size:14px">Başlıklara tıklayın: her biri için ayrıntılı açıklama, kod örneği ve dikkat edilecekler açılır.</p>
+  <div class="grid3 fill" style="grid-template-rows:1fr 1fr">
+    <div class="card" data-modal="m-default"><div class="iconrow"><div class="ic m blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M519.442 288.651c-41.519 0-59.5 31.593-82.058 31.593C377.409 320.244 432 144 432 144s-196.288 80-196.288-3.297c0-35.827 36.288-46.25 36.288-85.985C272 19.216 243.885 0 210.539 0c-34.654 0-66.366 18.891-66.366 56.346 0 41.364 31.711 59.277 31.711 81.75C175.885 207.719 0 166.758 0 166.758v333.237s178.635 41.047 178.635-28.662c0-22.473-40-40.107-40-81.471 0-37.456 29.25-56.346 63.577-56.346 33.673 0 61.788 19.216 61.788 54.717 0 39.735-36.288 50.158-36.288 85.985 0 60.803 129.675 25.73 181.23 25.73 0 0-34.725-120.101 25.827-120.101 35.962 0 46.423 36.152 86.308 36.152C556.712 416 576 387.99 576 354.443c0-34.199-18.962-65.792-56.558-65.792z"></path></svg></div><h3 style="align-self:center">Default Methods</h3></div><p class="small" style="margin-top:12px">Arayüze gövdeli metot eklenebilir; List.forEach, Map.getOrDefault gibi API'ler eski kodu kırmadan büyüdü.</p></div>
+    <div class="card" data-modal="m-cf"><div class="iconrow"><div class="ic m"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M504.971 359.029c9.373 9.373 9.373 24.569 0 33.941l-80 79.984c-15.01 15.01-40.971 4.49-40.971-16.971V416h-58.785a12.004 12.004 0 0 1-8.773-3.812l-70.556-75.596 53.333-57.143L352 336h32v-39.981c0-21.438 25.943-31.998 40.971-16.971l80 79.981zM12 176h84l52.781 56.551 53.333-57.143-70.556-75.596A11.999 11.999 0 0 0 122.785 96H12c-6.627 0-12 5.373-12 12v56c0 6.627 5.373 12 12 12zm372 0v39.984c0 21.46 25.961 31.98 40.971 16.971l80-79.984c9.373-9.373 9.373-24.569 0-33.941l-80-79.981C409.943 24.021 384 34.582 384 56.019V96h-58.785a12.004 12.004 0 0 0-8.773 3.812L96 336H12c-6.627 0-12 5.373-12 12v56c0 6.627 5.373 12 12 12h110.785c3.326 0 6.503-1.381 8.773-3.812L352 176h32z"></path></svg></div><h3 style="align-self:center">CompletableFuture</h3></div><p class="small" style="margin-top:12px">Asenkron akışları zincirleme: thenApply, thenCombine, exceptionally. Modern reaktif kodun temeli.</p></div>
+    <div class="card" data-modal="m-mref"><div class="iconrow"><div class="ic m esp"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M326.612 185.391c59.747 59.809 58.927 155.698.36 214.59-.11.12-.24.25-.36.37l-67.2 67.2c-59.27 59.27-155.699 59.262-214.96 0-59.27-59.26-59.27-155.7 0-214.96l37.106-37.106c9.84-9.84 26.786-3.3 27.294 10.606.648 17.722 3.826 35.527 9.69 52.721 1.986 5.822.567 12.262-3.783 16.612l-13.087 13.087c-28.026 28.026-28.905 73.66-1.155 101.96 28.024 28.579 74.086 28.749 102.325.51l67.2-67.19c28.191-28.191 28.073-73.757 0-101.83-3.701-3.694-7.429-6.564-10.341-8.569a16.037 16.037 0 0 1-6.947-12.606c-.396-10.567 3.348-21.456 11.698-29.806l21.054-21.055c5.521-5.521 14.182-6.199 20.584-1.731a152.482 152.482 0 0 1 20.522 17.197zM467.547 44.449c-59.261-59.262-155.69-59.27-214.96 0l-67.2 67.2c-.12.12-.25.25-.36.37-58.566 58.892-59.387 154.781.36 214.59a152.454 152.454 0 0 0 20.521 17.196c6.402 4.468 15.064 3.789 20.584-1.731l21.054-21.055c8.35-8.35 12.094-19.239 11.698-29.806a16.037 16.037 0 0 0-6.947-12.606c-2.912-2.005-6.64-4.875-10.341-8.569-28.073-28.073-28.191-73.639 0-101.83l67.2-67.19c28.239-28.239 74.3-28.069 102.325.51 27.75 28.3 26.872 73.934-1.155 101.96l-13.087 13.087c-4.35 4.35-5.769 10.79-3.783 16.612 5.864 17.194 9.042 34.999 9.69 52.721.509 13.906 17.454 20.446 27.294 10.606l37.106-37.106c59.271-59.259 59.271-155.699.001-214.959z"></path></svg></div><h3 style="align-self:center">Metot Referansları</h3></div><p class="small" style="margin-top:12px">Kisi::getAd, String::valueOf — lambda'nın daha da kısa hali.</p></div>
+    <div class="card" data-modal="m-permgen"><div class="iconrow"><div class="ic m blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 640 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M640 130.94V96c0-17.67-14.33-32-32-32H32C14.33 64 0 78.33 0 96v34.94c18.6 6.61 32 24.19 32 45.06s-13.4 38.45-32 45.06V320h640v-98.94c-18.6-6.61-32-24.19-32-45.06s13.4-38.45 32-45.06zM224 256h-64V128h64v128zm128 0h-64V128h64v128zm128 0h-64V128h64v128zM0 448h64v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h64v-96H0v96z"></path></svg></div><h3 style="align-self:center">PermGen gitti, Metaspace geldi</h3></div><p class="small" style="margin-top:12px">"OutOfMemoryError: PermGen space" hatası tarihe karıştı; sınıf alanı otomatik büyür.</p></div>
+  <div class="mdata" id="m-permgen">
+    <p class="kicker">Java 8 · JEP 122 — Remove the Permanent Generation</p>
+    <h3 class="mt">PermGen gitti, Metaspace geldi</h3>
+    <p class="msub">Sınıf metaverisi artık heap'in içindeki sabit bir bölmede değil, yerel bellekte (native memory) tutuluyor.</p>
+
+    <div class="msec">
+      <h4>PermGen neydi?</h4>
+      <p>PermGen (Permanent Generation), HotSpot JVM'de <b>heap'in içinde sabit boyutlu</b> bir bölümdü. İçinde yüklenen sınıfların metaverisi, metot bilgileri, statik alanlar, sabit havuzu (constant pool) ve Java 6'ya kadar intern edilmiş String'ler dururdu. "Permanent" adı yanıltıcıydı: içeriği çöp toplamaya tabiydi, ama tavanı sabitti.</p>
+    </div>
+
+    <div class="msec">
+      <h4>Sorun neydi?</h4>
+      <ul class="b">
+        <li><b>Sabit tavan.</b> <code>-XX:MaxPermSize</code> ile elle ayarlanırdı; varsayılan 64–85 MB civarındaydı. Doğru değeri önceden kestirmek neredeyse imkânsızdı.</li>
+        <li><b>Hot deploy sızıntısı.</b> Uygulama sunucusuna her yeniden dağıtımda eski ClassLoader bellekte kalırsa sınıfları da kalırdı. Tomcat/JBoss'ta "üçüncü deploy'dan sonra sunucuyu yeniden başlat" alışkanlığı buradan gelir.</li>
+        <li><b>Çerçeveler şişiriyordu.</b> Spring, Hibernate ve dinamik proxy üreten her kütüphane çalışma zamanında sınıf üretir; büyük uygulamalarda on binlerce sınıf PermGen'e sığmazdı.</li>
+        <li>Sonuç, herkesin ezbere bildiği hata: <code class="warn">java.lang.OutOfMemoryError: PermGen space</code></li>
+      </ul>
+    </div>
+
+    <div class="msec">
+      <h4>Java 8 ne yaptı?</h4>
+      <ul class="b">
+        <li>PermGen <b>tamamen kaldırıldı</b>; sınıf metaverisi <b>Metaspace</b>'e taşındı.</li>
+        <li>Metaspace heap'te değil, <b>yerel bellekte</b> yaşar ve varsayılan olarak <b>otomatik büyür</b>; pratik sınırı makinenin belleğidir. Artık "ne kadar ayıralım?" sorusu yok.</li>
+        <li>Bir ClassLoader çöp toplandığında ona ait tüm metaveri topluca boşaltılır.</li>
+        <li><code>-XX:PermSize</code> ve <code>-XX:MaxPermSize</code> bayrakları kaldırıldı. Java 8+ bunları görürse uygulamayı yine de başlatır, sadece uyarır:<br><code class="warn">OpenJDK 64-Bit Server VM warning: Ignoring option MaxPermSize; support was removed in 8.0</code></li>
+      </ul>
+    </div>
+
+    <table class="mtable">
+      <tr><th></th><th>PermGen (Java 7 ve öncesi)</th><th>Metaspace (Java 8+)</th></tr>
+      <tr><td>Nerede durur</td><td>Heap'in içinde</td><td>Yerel bellek (heap dışı)</td></tr>
+      <tr><td>Boyut</td><td>Sabit tavan, varsayılan ~64–85 MB</td><td>Otomatik büyür, varsayılan üst sınır yok</td></tr>
+      <tr><td>Ayar bayrakları</td><td><code>-XX:PermSize</code> · <code>-XX:MaxPermSize</code></td><td><code>-XX:MetaspaceSize</code> · <code>-XX:MaxMetaspaceSize</code></td></tr>
+      <tr><td>Dolunca çıkan hata</td><td><code>OutOfMemoryError: PermGen space</code></td><td><code>OutOfMemoryError: Metaspace</code></td></tr>
+      <tr><td>intern() String'ler</td><td>Java 6'da PermGen, Java 7'de heap'e taşındı</td><td>Heap</td></tr>
+    </table>
+
+    <div class="msec">
+      <h4>Ama sihirli değil</h4>
+      <ul class="b">
+        <li>ClassLoader sızıntısı hâlâ sızıntıdır. Sadece hatanın adı değişti: <code class="warn">java.lang.OutOfMemoryError: Metaspace</code></li>
+        <li>Sınırsız büyüme konteynerde risktir. Docker/Kubernetes'te bellek limitini heap + Metaspace + thread yığınları toplamına göre hesaplayın; gerekirse <code>-XX:MaxMetaspaceSize=512m</code> ile tavan koyun.</li>
+        <li>İzleme: <code>jcmd &lt;pid&gt; VM.metaspace</code>, JMX'teki "Metaspace" bellek havuzu, <code>-XX:NativeMemoryTracking=summary</code>.</li>
+      </ul>
+    </div>
+
+    <div class="msec last">
+      <h4>Ekip için pratik sonuçlar</h4>
+      <div class="mroles">
+        <div><b>Geliştirici</b><span>Başlangıç betiklerinden ve Dockerfile'lardan <code>-XX:MaxPermSize</code> satırlarını silin; artık hiçbir işe yaramıyor.</span></div>
+        <div><b>Test / DevOps</b><span>"Deploy sonrası PermGen doldu" biletleri tarihe karıştı. Yerine Metaspace'i izleyin; konteyner bellek limitini yeniden hesaplayın.</span></div>
+        <div><b>Geçiş</b><span>Java 8'e geçerken bu bayraklar uygulamayı durdurmaz, sadece uyarı üretir. Yine de temizlemek log gürültüsünü azaltır.</span></div>
+      </div>
+    </div>
+  </div>
+
+    <div class="card" data-modal="m-parallel"><div class="iconrow"><div class="ic m"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 320 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M296 160H180.6l42.6-129.8C227.2 15 215.7 0 200 0H56C44 0 33.8 8.9 32.2 20.8l-32 240C-1.7 275.2 9.5 288 24 288h118.7L96.6 482.5c-3.6 15.2 8 29.5 23.3 29.5 8.4 0 16.4-4.4 20.8-12l176-304c9.3-15.9-2.2-36-20.7-36z"></path></svg></div><h3 style="align-self:center">Paralel Stream &amp; Fork/Join</h3></div><p class="small" style="margin-top:12px">Çok çekirdekli işlemciyi tek kelimeyle kullanmak: .parallelStream()</p></div>
+    <div class="card" data-modal="m-nashorn"><div class="iconrow"><div class="ic m esp"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M0 32v448h448V32H0zm243.8 349.4c0 43.6-25.6 63.5-62.9 63.5-33.7 0-53.2-17.4-63.2-38.5l34.3-20.7c6.6 11.7 12.6 21.6 27.1 21.6 13.8 0 22.6-5.4 22.6-26.5V237.7h42.1v143.7zm99.6 63.5c-39.1 0-64.4-18.6-76.7-43l34.3-19.8c9 14.7 20.8 25.6 41.5 25.6 17.4 0 28.6-8.7 28.6-20.8 0-14.4-11.4-19.5-30.7-28l-10.5-4.5c-30.4-12.9-50.5-29.2-50.5-63.5 0-31.6 24.1-55.6 61.6-55.6 26.8 0 46 9.3 59.8 33.7L368 290c-7.2-12.9-15-18-27.1-18-12.3 0-20.1 7.8-20.1 18 0 12.6 7.8 17.7 25.9 25.6l10.5 4.5c35.8 15.3 55.9 31 55.9 66.2 0 37.8-29.8 58.6-69.7 58.6z"></path></svg></div><h3 style="align-self:center">Nashorn JS motoru</h3></div><p class="small" style="margin-top:12px">JVM içinde JavaScript. (Not: Java 15'te kaldırıldı — geçişte dikkat!)</p></div>
+  </div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Kartların hepsi tıklanabilir; ekibin ilgisini çekene girin. Bunlar tek başına belirleyici değil ama toplamı büyük. Nashorn'u özellikle vurgulayın: Java 8'e özgü bazı şeyler sonraki sürümlerde kaldırıldı; geçiş bölümünde tekrar göreceğiz.</aside>
+
+  <div class="mdata" id="m-default">
+    <p class="kicker">Java 8 · Default Methods</p>
+    <h3 class="mt">Arayüzler nasıl kırılmadan büyüdü?</h3>
+    <p class="msub">Arayüze gövdeli metot eklenebilmesi, Java 8'in en görünmez ama en kritik değişikliğiydi.</p>
+    <div class="msec">
+      <h4>Problem</h4>
+      <p>Java 8'de <code>Collection</code> arayüzüne <code>stream()</code> eklenmesi gerekiyordu. Ama arayüze yeni bir metot eklerseniz, o arayüzü uygulayan dünyadaki tüm sınıflar derlenmez hale gelir. Milyonlarca satır kodu kırmadan Stream API'yi eklemenin yolu yoktu.</p>
+    </div>
+    <div class="msec">
+      <h4>Çözüm: gövdeli arayüz metodu</h4>
+      <p>Arayüz artık varsayılan bir gerçekleştirim taşıyabilir. Uygulayan sınıf isterse ezer, istemezse varsayılanı kullanır.</p>
+      <pre class="mcode">interface Liste&lt;T&gt; {
+    void ekle(T t);
+
+    default boolean bosMu() {   // yeni metot, kimse kırılmaz
+        return boyut() == 0;
+    }
+}</pre>
+      <p>Bu sayede gelen API'ler: <code>Collection.stream()</code>, <code>Iterable.forEach()</code>, <code>Map.getOrDefault()</code>, <code>Map.computeIfAbsent()</code>, <code>Comparator.reversed()</code>, <code>Comparator.thenComparing()</code>. Java 8'in Stream ve lambda dünyası bu mekanizma olmadan mümkün değildi.</p>
+    </div>
+    <div class="msec last">
+      <h4>Dikkat</h4>
+      <ul class="b">
+        <li><b>Elmas problemi:</b> iki arayüz aynı imzada default metot verirse sınıf derlenmez. Ezip <code>Arayuz.super.metot()</code> ile hangisini istediğinizi söylersiniz.</li>
+        <li><b>Durum yok:</b> arayüzler alan tutamaz. Default metot, soyut sınıfın yerini almaz; API evrimi içindir.</li>
+        <li>Java 8 ayrıca arayüzlere <code>static</code> metot da getirdi: <code>Comparator.comparing(...)</code> bu sayede var.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-cf">
+    <p class="kicker">Java 8 · CompletableFuture</p>
+    <h3 class="mt">Asenkron işleri zincirlemek</h3>
+    <p class="msub">Java 5'in <code>Future</code>'ı yalnızca bloklayarak sonuç verirdi. CompletableFuture, "bittiğinde şunu yap" demeyi mümkün kıldı.</p>
+    <div class="msec">
+      <h4>Eskiden</h4>
+      <pre class="mcode">Future&lt;Musteri&gt; f = executor.submit(() -&gt; musteriGetir(id));
+Musteri m = f.get();          // thread burada BLOKLANIR
+Siparis s = siparisGetir(m);  // ancak şimdi devam edebiliriz</pre>
+    </div>
+    <div class="msec">
+      <h4>Java 8 ile</h4>
+      <pre class="mcode">CompletableFuture
+    .supplyAsync(() -&gt; musteriGetir(id))
+    .thenApply(m -&gt; siparisGetir(m))          // dönüştür
+    .thenCombine(stokGetir(), (s, st) -&gt; ...)  // iki işi birleştir
+    .exceptionally(e -&gt; varsayilanSiparis())   // hatayı yakala
+    .thenAccept(System.out::println);          // sonucu kullan</pre>
+      <p><code>allOf</code> / <code>anyOf</code> ile birden çok işi bekleyebilir, <code>orTimeout</code> (Java 9) ile zaman aşımı koyabilirsiniz. Spring WebClient ve modern istemcilerin döndürdüğü tip budur.</p>
+    </div>
+    <div class="msec last">
+      <h4>Dikkat</h4>
+      <ul class="b">
+        <li><b>Varsayılan havuz ortaktır.</b> Executor vermezseniz <code>ForkJoinPool.commonPool()</code> kullanılır ve orada bloklayan iş yaparsanız tüm uygulamayı yavaşlatırsınız. Kendi executor'ınızı geçin.</li>
+        <li>Zincir uzadıkça yığın izi okunmaz hale gelir; hata ayıklama zorlaşır.</li>
+        <li><b>Java 21 notu:</b> I/O bekleyen işler için sanal thread'lerle düz, bloklayan kod yazmak çoğu zaman daha okunur. CompletableFuture'ı işleri <i>birleştirmek</i> gerektiğinde tutun.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-mref">
+    <p class="kicker">Java 8 · Metot Referansları</p>
+    <h3 class="mt">Lambda'nın kısa yazımı</h3>
+    <p class="msub">Lambda sadece var olan bir metodu çağırıyorsa, o metodun adını yazmak yeter.</p>
+    <div class="msec">
+      <h4>Dört biçimi</h4>
+      <table class="mtable">
+        <tr><th>Biçim</th><th>Örnek</th><th>Karşılığı</th></tr>
+        <tr><td>Statik metot</td><td><code>Integer::parseInt</code></td><td><code>s -&gt; Integer.parseInt(s)</code></td></tr>
+        <tr><td>Belirli nesnenin metodu</td><td><code>System.out::println</code></td><td><code>x -&gt; System.out.println(x)</code></td></tr>
+        <tr><td>Tipin metodu</td><td><code>String::length</code></td><td><code>s -&gt; s.length()</code></td></tr>
+        <tr><td>Kurucu</td><td><code>ArrayList::new</code></td><td><code>() -&gt; new ArrayList()</code></td></tr>
+      </table>
+    </div>
+    <div class="msec last">
+      <h4>Dikkat</h4>
+      <ul class="b">
+        <li>Yeni bir yetenek değil, yalnızca yazım kısaltması. Arkasında yine aynı fonksiyonel arayüz var.</li>
+        <li><code>nesne::metot</code> yazdığınızda <b>nesne o anda değerlendirilir</b>. Sonradan değişkeni değiştirseniz referans eski nesneye bakmaya devam eder.</li>
+        <li>Parametre sırası değişiyorsa ya da ek işlem varsa metot referansı yazamazsınız; lambda kalır.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-parallel">
+    <p class="kicker">Java 8 · Paralel Stream &amp; Fork/Join</p>
+    <h3 class="mt">Tek kelimeyle çok çekirdek</h3>
+    <p class="msub"><code>.parallelStream()</code> işi böler, çekirdeklere dağıtır, sonucu birleştirir. Kolay olması onu her yerde doğru yapmaz.</p>
+    <div class="msec">
+      <h4>Nasıl çalışır</h4>
+      <p>Kaynak parçalara bölünür (spliterator), parçalar <code>ForkJoinPool.commonPool()</code> içindeki <i>çekirdek sayısı - 1</i> kadar thread'e dağıtılır, sonuçlar birleştirilir.</p>
+      <pre class="mcode">double toplam = siparisler.parallelStream()
+        .filter(s -&gt; s.tutar() &gt; 1000)
+        .mapToDouble(Siparis::tutar)
+        .sum();</pre>
+    </div>
+    <div class="msec">
+      <h4>Ne zaman kazandırır, ne zaman kaybettirir</h4>
+      <table class="mtable">
+        <tr><th></th><th>Uygun</th><th>Uygun değil</th></tr>
+        <tr><td>Veri</td><td>On binlerce eleman, ArrayList veya dizi</td><td>Küçük listeler, LinkedList, Stream.iterate</td></tr>
+        <tr><td>İş</td><td>CPU yoğun, bağımsız hesap</td><td>I/O bekleyen, veritabanına giden</td></tr>
+        <tr><td>Yan etki</td><td>Yok, saf fonksiyon</td><td>Paylaşılan listeye ekleme, sayaç artırma</td></tr>
+      </table>
+    </div>
+    <div class="msec last">
+      <h4>Dikkat</h4>
+      <ul class="b">
+        <li><b>Ortak havuz paylaşılır.</b> Bir yerde bloklayan paralel stream, uygulamanın tamamındaki paralel işleri bekletir.</li>
+        <li>Ölçmeden kullanmayın: küçük verilerde bölme ve birleştirme maliyeti kazancı yer.</li>
+        <li><b>Java 21 notu:</b> Sanal thread'ler I/O içindir, paralel stream CPU içindir. Birbirinin yerine geçmezler.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-nashorn">
+    <p class="kicker">Java 8 · Nashorn (Java 15'te kaldırıldı)</p>
+    <h3 class="mt">JVM içinde JavaScript</h3>
+    <p class="msub">Java 8, eski Rhino motorunun yerine Nashorn'u getirdi. Java 11'de kullanımdan kaldırıldı, Java 15'te silindi.</p>
+    <div class="msec">
+      <h4>Ne işe yarıyordu</h4>
+      <pre class="mcode">ScriptEngine motor = new ScriptEngineManager()
+        .getEngineByName("nashorn");
+motor.eval("var indirim = tutar &gt; 1000 ? 0.1 : 0;");</pre>
+      <p>Tipik kullanım: iş kurallarını yeniden derlemeden değiştirmek, kullanıcıya formül yazdırmak, şablon doldurmak. <code>jjs</code> komutuyla komut satırından da çalışırdı.</p>
+    </div>
+    <div class="msec">
+      <h4>Neden gitti</h4>
+      <p>ECMAScript 5.1'de kaldı, modern JavaScript'e (ES6 ve sonrası) hiç yetişemedi. Bakımı JDK için maliyetliydi. Java 11'de JEP 335 ile kullanımdan kaldırıldı, Java 15'te JEP 372 ile silindi.</p>
+    </div>
+    <div class="msec last">
+      <h4>Geçişte ne yapıldı</h4>
+      <ul class="b">
+        <li><b>Bağımsız Nashorn:</b> aynı motor artık ayrı bir kütüphane olarak var (<code>org.openjdk.nashorn:nashorn-core</code>). En hızlı çözüm, kodu değiştirmez.</li>
+        <li><b>GraalVM JavaScript:</b> modern JS desteği isteyenler için.</li>
+        <li><b>Kural motoru:</b> iş kuralları için betik yerine yapılandırma ya da kural kütüphanesi. Java 8 → 21 geçişinde en sık karşılaşılan somut kırılmalardan biri buydu.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ KISS PRENSİBİ ============ -->
+<section class="slide">
+  <p class="kicker">Benim savunduğum prensip</p>
+  <h1>KISS — Keep It Simple, Stupid</h1>
+  <p class="muted" style="margin:-10px 0 14px;font-size:14px">İki kod da aynı sonucu üretiyor: <code>{Ankara={Elektronik=Ece (750.0)}, İzmir={Elektronik=Ayşe (2150.0), Kitap=Ayşe (300.0)}}</code> — ikisini de çalıştırın.</p>
+  <div class="row fill">
+    <div class="runner" data-ex="kissKarmasik" data-label="Yapılabildiği için yapılmış: tek ifade"></div>
+    <div class="runner" data-ex="kissSade" data-label="Aynı iş, adımları isimlendirilmiş"></div>
+  </div>
+  <div class="grid3" style="margin-top:14px">
+    <div class="iconrow"><div class="ic s"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z"></path></svg></div><div><h3>KISS nedir?</h3><p>1960'larda Lockheed'de Kelly Johnson'ın kuralı: bir sistem ne kadar basitse o kadar iyi çalışır. Yazılımdaki karşılığı, işi yapan <b>en anlaşılır</b> çözümü seçmektir.</p></div></div>
+    <div class="iconrow"><div class="ic s blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M256 8C119.034 8 8 119.033 8 256s111.034 248 248 248 248-111.034 248-248S392.967 8 256 8zm130.108 117.892c65.448 65.448 70 165.481 20.677 235.637L150.47 105.216c70.204-49.356 170.226-44.735 235.638 20.676zM125.892 386.108c-65.448-65.448-70-165.481-20.677-235.637L361.53 406.784c-70.203 49.356-170.226 44.736-235.638-20.676z"></path></svg></div><div><h3>Az satır ≠ basit</h3><p>Soldaki tek bir ifade: ara sonucu göremezsiniz, ortasına kesme noktası koyamazsınız, hata izi hep aynı satırı gösterir. Sağdaki uzun ama her adımı ayrı test edilebilir.</p></div></div>
+    <div class="iconrow"><div class="ic s esp"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M504 256c0 136.967-111.033 248-248 248S8 392.967 8 256 119.033 8 256 8s248 111.033 248 248zM227.314 387.314l184-184c6.248-6.248 6.248-16.379 0-22.627l-22.627-22.627c-6.248-6.249-16.379-6.249-22.628 0L216 308.118l-70.059-70.059c-6.248-6.248-16.379-6.248-22.628 0l-22.627 22.627c-6.248 6.248-6.248 16.379 0 22.627l104 104c6.249 6.249 16.379 6.249 22.628.001z"></path></svg></div><div><h3>Pratik ölçüt</h3><p>Bir zincirde 3-4 adımı, bir lambda'da 1-2 satırı geçmeyin. İç içe <code>collector</code> yazmaya başladıysanız durun ve ara adımı isimlendirin.</p></div></div>
+  </div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Bu slayt kişisel duruşumuzu koyduğumuz yer. Java 8'in gücü, aynı zamanda en büyük tuzağı: artık her şeyi tek ifadeye sığdırabiliyorsunuz. Soldaki kodu ekrana verin ve "bu ne yapıyor?" diye sorun; kimse üç saniyede cevaplayamaz. Sonra sağdakini gösterin. Vurgular: kod yazıldığından çok daha fazla okunur; altı ay sonraki okuyucu genellikle yine sizsiniz. Tek ifadeli sürümde hata alırsanız yığın izi tek satırı gösterir, ara değeri yazdıramazsınız, kesme noktası koyamazsınız. Sağdaki sürümde enCokHarcayan metodu tek başına birim testi yazılabilir bir birimdir. Deneyin: soldaki koda kasten bir hata sokun (örneğin comparingByValue yerine comparingByKey) ve iki tarafta da hatayı bulmanın ne kadar sürdüğünü karşılaştırın.</aside>
+</section>
+
+<!-- ============ 9. NEDEN TAKILDIK ============ -->
+<section class="slide">
+  <p class="kicker">Java 8 · Olgunluğun bedeli</p>
+  <h1>Neden yıllarca Java 8'de takılı kaldık?</h1>
+  <div class="grid2 fill" style="font-size:15px">
+    <div class="card iconrow"><div class="ic m"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M560 288h-80v96l-32-21.3-32 21.3v-96h-80c-8.8 0-16 7.2-16 16v192c0 8.8 7.2 16 16 16h224c8.8 0 16-7.2 16-16V304c0-8.8-7.2-16-16-16zm-384-64h224c8.8 0 16-7.2 16-16V16c0-8.8-7.2-16-16-16h-80v96l-32-21.3L256 96V0h-80c-8.8 0-16 7.2-16 16v192c0 8.8 7.2 16 16 16zm64 64h-80v96l-32-21.3L96 384v-96H16c-8.8 0-16 7.2-16 16v192c0 8.8 7.2 16 16 16h224c8.8 0 16-7.2 16-16V304c0-8.8-7.2-16-16-16z"></path></svg></div><div><h3>Java 9 modül sistemi (Jigsaw)</h3><p>JDK iç API'leri kapatıldı; Hibernate, Lombok, ASM gibi kütüphaneler kırıldı. "Java 9'a geç" = "her şeyi güncelle" demekti.</p></div></div>
+    <div class="card iconrow"><div class="ic m"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M504 255.531c.253 136.64-111.18 248.372-247.82 248.468-59.015.042-113.223-20.53-155.822-54.911-11.077-8.94-11.905-25.541-1.839-35.607l11.267-11.267c8.609-8.609 22.353-9.551 31.891-1.984C173.062 425.135 212.781 440 256 440c101.705 0 184-82.311 184-184 0-101.705-82.311-184-184-184-48.814 0-93.149 18.969-126.068 49.932l50.754 50.754c10.08 10.08 2.941 27.314-11.313 27.314H24c-8.837 0-16-7.163-16-16V38.627c0-14.254 17.234-21.393 27.314-11.314l49.372 49.372C129.209 34.136 189.552 8 256 8c136.81 0 247.747 110.78 248 247.531zm-180.912 78.784l9.823-12.63c8.138-10.463 6.253-25.542-4.21-33.679L288 256.349V152c0-13.255-10.745-24-24-24h-16c-13.255 0-24 10.745-24 24v135.651l65.409 50.874c10.463 8.137 25.541 6.253 33.679-4.21z"></path></svg></div><div><h3>6 aylık sürüm döngüsü (2017)</h3><p>Java 9'dan sonra her 6 ayda yeni sürüm. Hangisi güvenli? Hangisi kalıcı? Karmaşa, herkesi beklemeye itti.</p></div></div>
+    <div class="card iconrow"><div class="ic m blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M400 224h-24v-72C376 68.2 307.8 0 224 0S72 68.2 72 152v72H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48zm-104 0H152v-72c0-39.7 32.3-72 72-72s72 32.3 72 72v72z"></path></svg></div><div><h3>Oracle lisans değişikliği (2019)</h3><p>Oracle JDK üretimde ücretli hale geldi. Alternatifler (Temurin, Corretto, Zulu) netleşene kadar bekleyen çok oldu.</p></div></div>
+    <div class="card iconrow"><div class="ic m blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M504 256c0 136.967-111.033 248-248 248S8 392.967 8 256 119.033 8 256 8s248 111.033 248 248zM227.314 387.314l184-184c6.248-6.248 6.248-16.379 0-22.627l-22.627-22.627c-6.248-6.249-16.379-6.249-22.628 0L216 308.118l-70.059-70.059c-6.248-6.248-16.379-6.248-22.628 0l-22.627 22.627c-6.248 6.248-6.248 16.379 0 22.627l104 104c6.249 6.249 16.379 6.249 22.628.001z"></path></svg></div><div><h3>"Çalışıyorsa dokunma"</h3><p>Java 8 stabil, hızlı ve destekliydi. İş değeri görünmeyen bir geçiş için bütçe çıkmadı.</p></div></div>
+  </div>
+  <div class="card tint" style="margin-top:22px">
+    <h3 style="color:var(--orange)">Çözüm: LTS (Uzun Süreli Destek) sürümleri</h3>
+    <p class="small">Java 8 (2014) → 11 (2018) → 17 (2021) → 21 (2023) → 25 (2025). Ara sürümler 6 ay yaşar; kurumlar LTS'ten LTS'e atlar.</p>
+  </div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Mesaj: Java 8'de kalmak tembellik değil, rasyonel bir karardı. Ama artık maliyet tersine döndü: Spring Boot 3, Jakarta EE 10 ve çoğu güncel kütüphane Java 17+ istiyor; Java 8 için güvenlik yamaları sınırlı sağlayıcılardan geliyor.</aside>
+</section>
+
+<!-- ============ 10. BÖLÜM 2 ============ -->
+<section class="slide dark">
+  <div style="margin-top:210px;display:flex;justify-content:space-between;align-items:center">
+    <div><p class="kicker">Bölüm 2</p><h1 style="font-size:46px;margin-bottom:10px">Java 9'dan 21'e: Yolculuk</h1>
+      <p style="font-family:var(--head);font-style:italic;font-size:21px;color:#C9BFB5">Küçük adımlar, büyük birikim — dilin kendisi değişti</p></div>
+    <div class="ic xl blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M573.19 402.67l-139.79-320C428.43 71.29 417.6 64 405.68 64h-97.59l2.45 23.16c.5 4.72-3.21 8.84-7.96 8.84h-29.16c-4.75 0-8.46-4.12-7.96-8.84L267.91 64h-97.59c-11.93 0-22.76 7.29-27.73 18.67L2.8 402.67C-6.45 423.86 8.31 448 30.54 448h196.84l10.31-97.68c.86-8.14 7.72-14.32 15.91-14.32h68.8c8.19 0 15.05 6.18 15.91 14.32L348.62 448h196.84c22.23 0 36.99-24.14 27.73-45.33zM260.4 135.16a8 8 0 0 1 7.96-7.16h39.29c4.09 0 7.53 3.09 7.96 7.16l4.6 43.58c.75 7.09-4.81 13.26-11.93 13.26h-40.54c-7.13 0-12.68-6.17-11.93-13.26l4.59-43.58zM315.64 304h-55.29c-9.5 0-16.91-8.23-15.91-17.68l5.07-48c.86-8.14 7.72-14.32 15.91-14.32h45.15c8.19 0 15.05 6.18 15.91 14.32l5.07 48c1 9.45-6.41 17.68-15.91 17.68z"></path></svg></div>
+  </div>
+</section>
+
+<!-- ============ 11. ZAMAN ÇİZELGESİ ============ -->
+<section class="slide">
+  <p class="kicker">2014 → 2023</p>
+  <h1>Zaman çizelgesi: hangi sürüm ne getirdi?</h1>
+  <div class="tl">
+    <div class="pt lts"><div class="yr">2014 · LTS</div><div class="dot">8</div><div class="ft">Lambda, Stream, Optional, java.time</div></div>
+    <div class="pt"><div class="yr">2017</div><div class="dot">9</div><div class="ft">Modüller, JShell, Collection factory</div></div>
+    <div class="pt"><div class="yr">2018</div><div class="dot">10</div><div class="ft">var (yerel tip çıkarımı)</div></div>
+    <div class="pt lts"><div class="yr">2018 · LTS</div><div class="dot">11</div><div class="ft">HTTP Client, String API, tek dosya çalıştırma</div></div>
+    <div class="pt"><div class="yr">2020</div><div class="dot">14</div><div class="ft">Switch ifadesi, yardımcı NPE mesajı</div></div>
+    <div class="pt"><div class="yr">2020</div><div class="dot">15</div><div class="ft">Text Blocks</div></div>
+    <div class="pt"><div class="yr">2021</div><div class="dot">16</div><div class="ft">Records, instanceof pattern</div></div>
+    <div class="pt lts"><div class="yr">2021 · LTS</div><div class="dot">17</div><div class="ft">Sealed sınıflar, Spring Boot 3 tabanı</div></div>
+    <div class="pt lts"><div class="yr">2023 · LTS</div><div class="dot">21</div><div class="ft">Virtual Threads, pattern switch, record pattern, Sequenced Collections</div></div>
+  </div>
+  <div class="grid3">
+    <div class="card iconrow" style="padding:14px 18px"><div class="ic s"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 640 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M278.9 511.5l-61-17.7c-6.4-1.8-10-8.5-8.2-14.9L346.2 8.7c1.8-6.4 8.5-10 14.9-8.2l61 17.7c6.4 1.8 10 8.5 8.2 14.9L293.8 503.3c-1.9 6.4-8.5 10.1-14.9 8.2zm-114-112.2l43.5-46.4c4.6-4.9 4.3-12.7-.8-17.2L117 256l90.6-79.7c5.1-4.5 5.5-12.3.8-17.2l-43.5-46.4c-4.5-4.8-12.1-5.1-17-.5L3.8 247.2c-5.1 4.7-5.1 12.8 0 17.5l144.1 135.1c4.9 4.6 12.5 4.4 17-.5zm327.2.6l144.1-135.1c5.1-4.7 5.1-12.8 0-17.5L492.1 112.1c-4.8-4.5-12.4-4.3-17 .5L431.6 159c-4.6 4.9-4.3 12.7.8 17.2L523 256l-90.6 79.7c-5.1 4.5-5.5 12.3-.8 17.2l43.5 46.4c4.5 4.9 12.1 5.1 17 .6z"></path></svg></div><div><h3>Dil (sözdizimi)</h3><p>var · records · sealed · switch ifadesi · pattern matching · text blocks</p></div></div>
+    <div class="card iconrow" style="padding:14px 18px"><div class="ic s blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M560 288h-80v96l-32-21.3-32 21.3v-96h-80c-8.8 0-16 7.2-16 16v192c0 8.8 7.2 16 16 16h224c8.8 0 16-7.2 16-16V304c0-8.8-7.2-16-16-16zm-384-64h224c8.8 0 16-7.2 16-16V16c0-8.8-7.2-16-16-16h-80v96l-32-21.3L256 96V0h-80c-8.8 0-16 7.2-16 16v192c0 8.8 7.2 16 16 16zm64 64h-80v96l-32-21.3L96 384v-96H16c-8.8 0-16 7.2-16 16v192c0 8.8 7.2 16 16 16h224c8.8 0 16-7.2 16-16V304c0-8.8-7.2-16-16-16z"></path></svg></div><div><h3>Kütüphane (API)</h3><p>HTTP Client · String/Files · Collection factory · Sequenced Collections</p></div></div>
+    <div class="card iconrow" style="padding:14px 18px"><div class="ic s esp"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 640 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M640 130.94V96c0-17.67-14.33-32-32-32H32C14.33 64 0 78.33 0 96v34.94c18.6 6.61 32 24.19 32 45.06s-13.4 38.45-32 45.06V320h640v-98.94c-18.6-6.61-32-24.19-32-45.06s13.4-38.45 32-45.06zM224 256h-64V128h64v128zm128 0h-64V128h64v128zm128 0h-64V128h64v128zM0 448h64v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h64v-96H0v96z"></path></svg></div><div><h3>JVM (çalışma zamanı)</h3><p>Metaspace · G1 → ZGC · Virtual Threads · jpackage · daha iyi NPE mesajı</p></div></div>
+  </div>
+  <p class="small muted" style="margin-top:16px"><span class="tag orange">LTS = uzun destek</span> &nbsp;<span class="tag">Ara sürüm (6 ay)</span> &nbsp; <i>12, 13, 18, 19, 20 gibi ara sürümler özellikleri 'preview' olarak olgunlaştırdı; burada yalnızca kalıcı olanlar var.</i></p>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Bu slaytta durmayın; sonraki slaytlar her maddeyi tek tek açıyor. Vurgu: Java 8'den 21'e 9 yıl ve 13 sürüm var, ama özelliklerin çoğu birbirini tamamlıyor (records + sealed + pattern matching bir 'üçlü').</aside>
+</section>
+
+<!-- ============ JIGSAW / MODÜL SİSTEMİ ============ -->
+<section class="slide">
+  <p class="kicker">Java 9 · Project Jigsaw (JPMS)</p>
+  <h1>Modül sistemi nedir, ne işe yarar?</h1>
+  <div class="row fill">
+    <div class="runner" data-ex="jigsawModuleInfo" data-static="module-info.java — tek dosya olarak çalıştırılamaz" data-label="Bir modülün kimlik kartı: module-info.java"></div>
+    <div class="runner" data-ex="jigsawRuntime" data-label="Çalışma zamanında modüller — çalıştırın"></div>
+  </div>
+  <div class="grid3" style="margin-top:14px">
+    <div class="iconrow"><div class="ic s"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M400 224h-24v-72C376 68.2 307.8 0 224 0S72 68.2 72 152v72H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48zm-104 0H152v-72c0-39.7 32.3-72 72-72s72 32.3 72 72v72z"></path></svg></div><div><h3>Güçlü kapsülleme</h3><p>Yalnızca <code>exports</code> edilen paketler görünür. JDK'nın iç API'leri (<code>sun.misc.Unsafe</code>, <code>com.sun.*</code>) dışarıya kapandı.</p></div></div>
+    <div class="iconrow"><div class="ic s blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M504 256c0 136.967-111.033 248-248 248S8 392.967 8 256 119.033 8 256 8s248 111.033 248 248zM227.314 387.314l184-184c6.248-6.248 6.248-16.379 0-22.627l-22.627-22.627c-6.248-6.249-16.379-6.249-22.628 0L216 308.118l-70.059-70.059c-6.248-6.248-16.379-6.248-22.628 0l-22.627 22.627c-6.248 6.248-6.248 16.379 0 22.627l104 104c6.249 6.249 16.379 6.249 22.628.001z"></path></svg></div><div><h3>Güvenilir yapılandırma</h3><p>Eksik ya da çakışan bağımlılık, üretimde <code>NoClassDefFoundError</code> yerine uygulama açılırken hata verir.</p></div></div>
+    <div class="iconrow"><div class="ic s esp"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M560 288h-80v96l-32-21.3-32 21.3v-96h-80c-8.8 0-16 7.2-16 16v192c0 8.8 7.2 16 16 16h224c8.8 0 16-7.2 16-16V304c0-8.8-7.2-16-16-16zm-384-64h224c8.8 0 16-7.2 16-16V16c0-8.8-7.2-16-16-16h-80v96l-32-21.3L256 96V0h-80c-8.8 0-16 7.2-16 16v192c0 8.8 7.2 16 16 16zm64 64h-80v96l-32-21.3L96 384v-96H16c-8.8 0-16 7.2-16 16v192c0 8.8 7.2 16 16 16h224c8.8 0 16-7.2 16-16V304c0-8.8-7.2-16-16-16z"></path></svg></div><div><h3>Küçülebilen platform</h3><p>JDK onlarca modüle bölündü. <code>jlink</code> ile yalnızca kullandığınız modüllerden çalışma zamanı üretirsiniz: ~300 MB yerine ~45 MB imaj.</p></div></div>
+  </div>
+  <p class="ide-note" style="margin-top:12px"><b>Ama uygulamanız modül olmak zorunda değil:</b> classpath (isimsiz modül) tam desteklidir ve çoğu ekip hâlâ böyle çalışıyor. Jigsaw'ın asıl etkisi, <b>JDK'nın kendi kapılarını kapatması</b> oldu; geçişte <code>--add-opens</code> ve <code>--add-exports</code> gerektiren şey budur.</p>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Jigsaw, Java 9'un en büyük ve en tartışmalı değişikliği. Üç cümlede özeti: modül = adı olan, neye ihtiyaç duyduğunu ve dışarıya ne verdiğini kendisi yazan bir paket kümesi. Ekiplerin çoğu kendi kodunu modüle çevirmedi, ama JDK modüler olduğu için herkes etkilendi: Hibernate, Spring, Mockito gibi kütüphaneler yansıma ile JDK'nın içine giriyordu ve o kapı kapandı. Sağdaki örneği çalıştırın; InaccessibleObjectException mesajı "module java.base does not opens java.lang" diyor, yani modül sistemi tam olarak burada devrede. Java 16'da (JEP 396) bu kapsülleme varsayılan, Java 17'de (JEP 403) kesin hale geldi; --illegal-access ile gevşetme yolu kalktı. Geçiş slaytındaki "--add-opens" maddesi bu slaytın devamıdır. Otomatik modüller (Automatic-Module-Name) kademeli geçiş için tasarlandı ama pratikte çoğu proje classpath'te kaldı.</aside>
+</section>
+
+<!-- ============ 12. var + TEXT BLOCKS ============ -->
+<section class="slide">
+  <p class="kicker">Java 10 · Java 15</p>
+  <h1>Daha az gürültü: var ve Text Blocks</h1>
+  <div class="row fill">
+    <div class="runner" data-ex="varDemo" data-label="Java 10 — var: tipi tekrar yazma"></div>
+    <div class="runner" data-ex="textBlocks" data-label="Java 15 — Text Blocks: çok satırlı metin"></div>
+  </div>
+  <p class="ide-note"><b>Özellikle test ekibi için:</b> JSON, SQL, XML test verileri artık kaçış karakteri (\") ve + zinciri olmadan, olduğu gibi okunur. Deneyin: solda <code>toplam = "metin";</code> satırının yorumunu kaldırın → derleyici sizi durdurur (var dinamik tip değildir).</p>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">var: sadece yerel değişkenlerde; alan ve parametrelerde kullanılamaz. Okunurluğu artırdığı yerde kullanın, gizlediği yerde kullanmayın. Text block: kapanış üç tırnağın konumu girintiyi belirler. JSON çıktısındaki girintinin nereden geldiğini gösterin.</aside>
+</section>
+
+<!-- ============ 13. RECORDS ============ -->
+<section class="slide">
+  <p class="kicker">Java 16 · Records</p>
+  <h1>Veri taşıyan sınıflar tek satırda</h1>
+  <div class="row fill">
+    <div class="runner" data-ex="recordOld" data-label="Java 8 — klasik DTO (~30 satır, çoğu üretilmiş kod)"></div>
+    <div class="col" style="flex:1;gap:14px">
+      <div class="runner" data-ex="recordNew" data-label="Java 16+ — record (compact constructor ile doğrulama)"></div>
+      <div class="card" style="padding:14px 18px;flex:none">
+        <h3>Kurallar ve kazanımlar</h3>
+        <ul class="b" style="font-size:12.5px"><li>Değişmez (immutable): set metodu yok → thread-safe, yan etkisiz.</li><li>equals/hashCode/toString otomatik ve doğru → test fixture'ları 1 satır.</li><li>JPA entity için değil; DTO, olay (event), API yanıtı için ideal.</li></ul>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Records, DTO / value object / API yanıtı / olay gibi 'veri paketleri' için. Lombok @Value'nun dil düzeyinde karşılığı. Sağ kartta compact constructor'ı vurgulayın: doğrulama tek yerde. Deneyin: "a.ad = ..." satırını ekletip derleme hatasını gösterin.</aside>
+</section>
+
+<!-- ============ RECORDS vs LOMBOK ============ -->
+<section class="slide">
+  <p class="kicker">Java 16 · Records vs Lombok</p>
+  <h1>Records Lombok'un yerini aldı mı?</h1>
+  <div class="row fill">
+    <div class="runner" data-ex="lombokValue" data-static="Lombok · eklenti gerekir, burada çalışmaz" data-label="Lombok — @Value + @Builder + @With (kod üretimi)"></div>
+    <div class="runner" data-ex="recordVsLombok" data-label="Java 16+ — record: aynı iş, dil desteğiyle" style="flex:1.15"></div>
+  </div>
+  <div class="row" style="margin-top:14px;gap:20px">
+    <table class="cmp">
+      <tr><th>Lombok</th><th>Java 21 karşılığı</th><th></th></tr>
+      <tr><td>@Value (değişmez veri sınıfı)</td><td>record</td><td class="y">✔ tamamen</td></tr>
+      <tr><td>@EqualsAndHashCode, @ToString</td><td>record otomatik üretir</td><td class="y">✔ veri sınıflarında</td></tr>
+      <tr><td>@With</td><td>record içinde elle metot</td><td class="p">~ kısmen</td></tr>
+      <tr><td>@Builder</td><td>yok — elle builder ya da Lombok</td><td class="n">✖</td></tr>
+      <tr><td>@Data, @Getter/@Setter (mutable)</td><td>yok — record değişmezdir</td><td class="n">✖</td></tr>
+      <tr><td>@Slf4j, @RequiredArgsConstructor</td><td>yok</td><td class="n">✖</td></tr>
+    </table>
+    <div class="card tint" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+      <h3 style="color:var(--orange)">Sonuç</h3>
+      <p style="font-size:14.5px;line-height:1.45">Java 21, Lombok'un yerini tamamen almadı; ancak Record gibi özelliklerle özellikle <b>veri taşıma amaçlı sınıflarda</b> Lombok ihtiyacını önemli ölçüde azalttı.</p>
+      <p class="small muted" style="margin-top:8px">Pratik kural: yeni DTO / olay / API yanıtı → record. JPA entity, builder ve log için Lombok kalabilir.</p>
+    </div>
+  </div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">"Lombok'u kaldıralım" projesi başlatmayın. Yeni veri sınıflarını record yapın; mevcut @Value sınıflarını fırsat buldukça çevirin. Builder gereken çok alanlı nesneler, mutable JPA entity'ler ve @Slf4j için Lombok kalır. Test ekibi için: record'lar equals'ı doğru ürettiğinden assertEquals ile nesne karşılaştırması güvenilir; Lombok'ta @EqualsAndHashCode unutulursa test yanlış geçebilir. Geçiş notu: Lombok her JDK sürümünde güncelleme ister (Java 21 için 1.18.30+); record dil özelliği olduğu için böyle bir bağımlılık yoktur.</aside>
+</section>
+
+<!-- ============ 14. SWITCH + SEALED ============ -->
+<section class="slide">
+  <p class="kicker">Java 14 · Java 17</p>
+  <h1>Switch ifadesi ve sealed (mühürlü) hiyerarşiler</h1>
+  <div class="row fill">
+    <div class="runner" data-ex="switchExpr" data-label="Java 14 — switch artık bir ifade (değer döner)"></div>
+    <div class="runner" data-ex="sealedDemo" data-label="Java 17 — sealed: 'başka alt tip olamaz'"></div>
+  </div>
+  <p class="ide-note"><b>Üçlü birlikte çalışır:</b> sealed + record + switch. İş kuralındaki kapalı liste kodda da kapalı; eksik dalı derleyici yakalar, <code>default</code>'a ihtiyaç kalmaz. Deneyin: sağdaki <b>Cek</b> satırının yorumunu kaldırıp çalıştırın.</p>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Switch ifadesi 'ok' (->) sözdizimiyle gelir; eski ':' hali de duruyor. Sealed: 'permits' listesi dışında kimse implement edemez. Bu üçlü (sealed, record, pattern matching) Java'nın 'cebirsel veri tipi' cevabıdır. Cek satırını açıp derleme hatasını canlı gösterin.</aside>
+</section>
+
+<!-- ============ 15. PATTERN MATCHING ============ -->
+<section class="slide">
+  <p class="kicker">Java 16 → Java 21 · Pattern Matching</p>
+  <h1>Tek bir switch, üç kazanım</h1>
+  <div class="row fill">
+    <div class="runner" data-ex="patternSimple" data-label="Ödeme tipine göre komisyon — çalıştırın" style="flex:1.45"></div>
+    <div class="col" style="flex:1;gap:12px">
+      <div class="steps big">
+        <div class="step"><div class="n">1</div><div><h3>Tipi sor, değişkeni al</h3><p><code>case KrediKarti k</code> hem "bu bir kredi kartı mı?" diye sorar, hem de <code>k</code> değişkenini hazırlar. Ayrı bir cast satırı yok.</p></div></div>
+        <div class="step"><div class="n">2</div><div><h3>Alanları doğrudan aç</h3><p><code>case Havale(var iban, var tutar)</code> yazınca record'un alanları hazır değişken olur. <code>h.tutar()</code> demeye gerek kalmaz.</p></div></div>
+        <div class="step o"><div class="n">3</div><div><h3>Eksik dal bırakamazsınız</h3><p><code>Odeme</code> mühürlü olduğu için derleyici tüm tiplerin yazıldığını denetler. <code>default</code> yok: bir dalı silerseniz kod derlenmez.</p></div></div>
+      </div>
+    </div>
+  </div>
+  <p class="ide-note"><b>Java 8'de aynı iş:</b> <code>if (o instanceof KrediKarti) { KrediKarti k = (KrediKarti) o; … }</code> zinciri ve sonunda unutulmaya açık bir <code>else</code>. &nbsp;·&nbsp; Gerekirse koşul da eklenir: <code>case Havale h when h.tutar() &gt; 10_000 -&gt; …</code></p>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Bu slaytta tek bir kod var; üç maddeyi sırayla koddaki 1, 2, 3 yorumlarını göstererek anlatın. Canlı deneme: 2 numaralı satırı (Havale dalını) silip Çalıştır'a basın. Derleyici "the switch expression does not cover all possible input values" der; yani eksik senaryoyu testten önce derleyici yakalar. İsterseniz 1 numaralı dalı 'case KrediKarti(var no, var tutar) -> tutar * 0.02' diye değiştirip ayrıştırmanın iki dalda da çalıştığını gösterin. Java 8'den 21'e dil anlamındaki en büyük fark budur: visitor pattern'in çoğu kullanımı artık sadece bir switch.</aside>
+</section>
+
+<!-- ============ 16. KÜÇÜK AMA ETKİLİ ============ -->
+<section class="slide">
+  <p class="kicker">Java 9 → 17 · Küçük ama etkili</p>
+  <h1>Her gün kullanacağınız ufak kazanımlar</h1>
+  <p class="muted" style="margin:-10px 0 16px;font-size:14px">Başlıklara tıklayın: her biri için ayrıntılı açıklama, kod örneği ve dikkat edilecekler açılır.</p>
+  <div class="grid3 fill" style="grid-template-rows:1fr 1fr">
+    <div class="card" data-modal="m-http"><div class="iconrow"><div class="ic m blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 496 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M336.5 160C322 70.7 287.8 8 248 8s-74 62.7-88.5 152h177zM152 256c0 22.2 1.2 43.5 3.3 64h185.3c2.1-20.5 3.3-41.8 3.3-64s-1.2-43.5-3.3-64H155.3c-2.1 20.5-3.3 41.8-3.3 64zm324.7-96c-28.6-67.9-86.5-120.4-158-141.6 24.4 33.8 41.2 84.7 50 141.6h108zM177.2 18.4C105.8 39.6 47.8 92.1 19.3 160h108c8.7-56.9 25.5-107.8 49.9-141.6zM487.4 192H372.7c2.1 21 3.3 42.5 3.3 64s-1.2 43-3.3 64h114.6c5.5-20.5 8.6-41.8 8.6-64s-3.1-43.5-8.5-64zM120 256c0-21.5 1.2-43 3.3-64H8.6C3.2 212.5 0 233.8 0 256s3.2 43.5 8.6 64h114.6c-2-21-3.2-42.5-3.2-64zm39.5 96c14.5 89.3 48.7 152 88.5 152s74-62.7 88.5-152h-177zm159.3 141.6c71.4-21.2 129.4-73.7 158-141.6h-108c-8.8 56.9-25.6 107.8-50 141.6zM19.3 352c28.6 67.9 86.5 120.4 158 141.6-24.4-33.8-41.2-84.7-50-141.6h-108z"></path></svg></div><h3 style="align-self:center">HTTP Client (11)</h3></div><p class="small" style="margin-top:12px">HTTP/2, asenkron istek ve WebSocket, JDK'nın içinde. HttpURLConnection ve basit işler için 3. parti istemci ihtiyacı biter.</p></div>
+    <div class="card" data-modal="m-strfiles"><div class="iconrow"><div class="ic m"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 384 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M224 136V0H24C10.7 0 0 10.7 0 24v464c0 13.3 10.7 24 24 24h336c13.3 0 24-10.7 24-24V160H248c-13.2 0-24-10.8-24-24zm64 236c0 6.6-5.4 12-12 12H108c-6.6 0-12-5.4-12-12v-8c0-6.6 5.4-12 12-12h168c6.6 0 12 5.4 12 12v8zm0-64c0 6.6-5.4 12-12 12H108c-6.6 0-12-5.4-12-12v-8c0-6.6 5.4-12 12-12h168c6.6 0 12 5.4 12 12v8zm0-72v8c0 6.6-5.4 12-12 12H108c-6.6 0-12-5.4-12-12v-8c0-6.6 5.4-12 12-12h168c6.6 0 12 5.4 12 12zm96-114.1v6.1H256V0h6.1c6.4 0 12.5 2.5 17 7l97.9 98c4.5 4.5 7 10.6 7 16.9z"></path></svg></div><h3 style="align-self:center">String &amp; Files (11)</h3></div><p class="small" style="margin-top:12px">isBlank, strip, lines, repeat · Files.readString / writeString · Path.of("…"). Yardımcı sınıf yazma ihtiyacını azaltır.</p></div>
+    <div class="card" data-modal="m-single"><div class="iconrow"><div class="ic m esp"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 320 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M296 160H180.6l42.6-129.8C227.2 15 215.7 0 200 0H56C44 0 33.8 8.9 32.2 20.8l-32 240C-1.7 275.2 9.5 288 24 288h118.7L96.6 482.5c-3.6 15.2 8 29.5 23.3 29.5 8.4 0 16.4-4.4 20.8-12l176-304c9.3-15.9-2.2-36-20.7-36z"></path></svg></div><h3 style="align-self:center">Tek dosya çalıştırma (11)</h3></div><p class="small" style="margin-top:12px">java Hello.java — derleme adımı yok. Hızlı prototip, test yardımcısı ve öğretim için ideal.</p></div>
+    <div class="card" data-modal="m-collectors"><div class="iconrow"><div class="ic m blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M504.971 359.029c9.373 9.373 9.373 24.569 0 33.941l-80 79.984c-15.01 15.01-40.971 4.49-40.971-16.971V416h-58.785a12.004 12.004 0 0 1-8.773-3.812l-70.556-75.596 53.333-57.143L352 336h32v-39.981c0-21.438 25.943-31.998 40.971-16.971l80 79.981zM12 176h84l52.781 56.551 53.333-57.143-70.556-75.596A11.999 11.999 0 0 0 122.785 96H12c-6.627 0-12 5.373-12 12v56c0 6.627 5.373 12 12 12zm372 0v39.984c0 21.46 25.961 31.98 40.971 16.971l80-79.984c9.373-9.373 9.373-24.569 0-33.941l-80-79.981C409.943 24.021 384 34.582 384 56.019V96h-58.785a12.004 12.004 0 0 0-8.773 3.812L96 336H12c-6.627 0-12 5.373-12 12v56c0 6.627 5.373 12 12 12h110.785c3.326 0 6.503-1.381 8.773-3.812L352 176h32z"></path></svg></div><h3 style="align-self:center">Stream eklemeleri (9 → 16)</h3></div><p class="small" style="margin-top:12px">takeWhile, dropWhile, koşullu iterate, Collectors.teeing, mapMulti. Stream API on yılda olgunlaştı.</p></div>
+    <div class="card" data-modal="m-factories"><div class="iconrow"><div class="ic m"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M61.77 401l17.5-20.15a19.92 19.92 0 0 0 5.07-14.19v-3.31C84.34 356 80.5 352 73 352H16a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8h22.83a157.41 157.41 0 0 0-11 12.31l-5.61 7c-4 5.07-5.25 10.13-2.8 14.88l1.05 1.93c3 5.76 6.29 7.88 12.25 7.88h4.73c10.33 0 15.94 2.44 15.94 9.09 0 4.72-4.2 8.22-14.36 8.22a41.54 41.54 0 0 1-15.47-3.12c-6.49-3.88-11.74-3.5-15.6 3.12l-5.59 9.31c-3.72 6.13-3.19 11.72 2.63 15.94 7.71 4.69 20.38 9.44 37 9.44 34.16 0 48.5-22.75 48.5-44.12-.03-14.38-9.12-29.76-28.73-34.88zM496 224H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-160H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16V80a16 16 0 0 0-16-16zm0 320H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zM16 160h64a8 8 0 0 0 8-8v-16a8 8 0 0 0-8-8H64V40a8 8 0 0 0-8-8H32a8 8 0 0 0-7.14 4.42l-8 16A8 8 0 0 0 24 64h8v64H16a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8zm-3.91 160H80a8 8 0 0 0 8-8v-16a8 8 0 0 0-8-8H41.32c3.29-10.29 48.34-18.68 48.34-56.44 0-29.06-25-39.56-44.47-39.56-21.36 0-33.8 10-40.46 18.75-4.37 5.59-3 10.84 2.8 15.37l8.58 6.88c5.61 4.56 11 2.47 16.12-2.44a13.44 13.44 0 0 1 9.46-3.84c3.33 0 9.28 1.56 9.28 8.75C51 248.19 0 257.31 0 304.59v4C0 316 5.08 320 12.09 320z"></path></svg></div><h3 style="align-self:center">Koleksiyon fabrikaları (9)</h3></div><p class="small" style="margin-top:12px">List.of(1, 2, 3), Map.of("a", 1) — tek satırda değişmez koleksiyon; Java 16 ile stream().toList().</p></div>
+    <div class="card" data-modal="m-tools"><div class="iconrow"><div class="ic m esp"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M501.1 395.7L384 278.6c-23.1-23.1-57.6-27.6-85.4-13.9L192 158.1V96L64 0 0 64l96 128h62.1l106.6 106.6c-13.6 27.8-9.2 62.3 13.9 85.4l117.1 117.1c14.6 14.6 38.2 14.6 52.7 0l52.7-52.7c14.5-14.6 14.5-38.2 0-52.7zM331.7 225c28.3 0 54.9 11 74.9 31l19.4 19.4c15.8-6.9 30.8-16.5 43.8-29.5 37.1-37.1 49.7-89.3 37.9-136.7-2.2-9-13.5-12.1-20.1-5.5l-74.4 74.4-67.9-11.3L334 98.9l74.4-74.4c6.6-6.6 3.4-17.9-5.7-20.2-47.4-11.7-99.6.9-136.6 37.9-28.5 28.5-41.9 66.1-41.2 103.6l82.1 82.1c8.1-1.9 16.5-2.9 24.7-2.9zm-103.9 82l-56.7-56.7L18.7 402.8c-25 25-25 65.5 0 90.5s65.5 25 90.5 0l123.6-123.6c-7.6-19.9-9.9-41.6-5-62.7zM64 472c-13.2 0-24-10.8-24-24 0-13.3 10.7-24 24-24s24 10.7 24 24c0 13.2-10.7 24-24 24z"></path></svg></div><h3 style="align-self:center">JShell (9) &amp; jpackage (16)</h3></div><p class="small" style="margin-top:12px">Etkileşimli Java konsolu ile deneme; kurulabilir yerel paket (.exe / .msi / .dmg) üretimi.</p></div>
+  </div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Bu slaytta hızlı geçin; ekibin ilgisini çeken başlığa tıklayıp ayrıntıya inin. Deneyimle: HTTP Client ve String/Files günlük kodda en çok fark edilenler; tek dosya çalıştırma test yardımcıları için sürpriz derecede kullanışlı. Koleksiyon fabrikalarında null yasağı ve sıralamanın rastgeleliği, geçişte gerçek hataya yol açabilen iki ayrıntıdır; açılır pencerede ikisi de var.</aside>
+
+  <div class="mdata" id="m-http">
+    <p class="kicker">Java 11 · JEP 321 — HTTP Client</p>
+    <h3 class="mt">Modern HTTP istemcisi JDK'nın içinde</h3>
+    <p class="msub">Java 9'da deneme (incubator) olarak geldi, Java 11'de standart oldu. <code>java.net.http</code> paketi.</p>
+    <div class="msec">
+      <h4>Eskiden</h4>
+      <p><code>HttpURLConnection</code> 1990'ların API'siydi: akış yönetimi elle, zaman aşımı ayarları dağınık, HTTP/2 yok, asenkron yok. Bu yüzden neredeyse her projede Apache HttpClient veya OkHttp bağımlılığı vardı.</p>
+    </div>
+    <div class="msec">
+      <h4>Şimdi</h4>
+      <pre class="mcode">HttpClient istemci = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(5))
+        .build();
+
+HttpRequest istek = HttpRequest.newBuilder()
+        .uri(URI.create("https://api.ornek.com/siparis/1042"))
+        .header("Accept", "application/json")
+        .timeout(Duration.ofSeconds(10))
+        .GET()
+        .build();
+
+// Bloklayan
+HttpResponse&lt;String&gt; y = istemci.send(istek, BodyHandlers.ofString());
+System.out.println(y.statusCode() + " " + y.body());
+
+// Asenkron: CompletableFuture döner
+istemci.sendAsync(istek, BodyHandlers.ofString())
+       .thenApply(HttpResponse::body)
+       .thenAccept(System.out::println);</pre>
+      <p>HTTP/2 varsayılan, WebSocket desteği var, gövde işleyicileri (<code>BodyHandlers</code>) akış, dosya ve byte dizisi için hazır geliyor.</p>
+    </div>
+    <div class="msec last">
+      <h4>Dikkat</h4>
+      <ul class="b">
+        <li><b>HttpClient'ı yeniden kullanın.</b> Bağlantı havuzunu o tutar; her istekte yenisini yaratmak havuzu anlamsız kılar.</li>
+        <li>Otomatik yeniden deneme, devre kesici (circuit breaker) ve ayrıntılı havuz ayarı yoktur. Bunlara ihtiyacınız varsa Apache HttpClient veya Resilience4j gibi bir katman gerekir.</li>
+        <li><b>Java 21 notu:</b> sanal thread'lerle bloklayan <code>send()</code> çağrısı, asenkron sürüm kadar ölçeklenir ve okuması çok daha kolaydır.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-strfiles">
+    <p class="kicker">Java 11 · String ve Files eklemeleri</p>
+    <h3 class="mt">Yardımcı sınıf yazma devri bitti</h3>
+    <p class="msub">Her projede bir <code>StringUtils</code> ve bir <code>FileUtils</code> olurdu. Java 11 bunların çoğunu standart hale getirdi.</p>
+    <div class="msec">
+      <h4>String</h4>
+      <pre class="mcode">"   ".isBlank()          // true  — sadece boşluk mu?
+"  kırp  ".strip()       // "kırp" — Unicode farkındalıklı
+"satır1\nsatır2".lines() // Stream&lt;String&gt;
+"ab".repeat(3)           // "ababab"
+
+// Sonraki sürümler
+"metin".indent(4)        // Java 12
+"%s TL".formatted(250)   // Java 15</pre>
+      <p><b>Önemli ayrım:</b> <code>trim()</code> yalnızca U+0020 ve altındaki karakterleri kırpar; <code>strip()</code> Unicode boşluklarını da tanır. Kullanıcıdan gelen metinlerde <code>strip()</code> doğru olandır.</p>
+    </div>
+    <div class="msec">
+      <h4>Files ve Path</h4>
+      <pre class="mcode">Path yol = Path.of("veri", "siparis.json");   // Paths.get yerine
+Files.writeString(yol, json);                  // varsayılan UTF-8
+String icerik = Files.readString(yol);</pre>
+      <p>Java 8'de bu iş <code>new String(Files.readAllBytes(path), StandardCharsets.UTF_8)</code> idi ve kodlama vermeyi unutmak klasik bir hataydı.</p>
+    </div>
+    <div class="msec last">
+      <h4>Dikkat</h4>
+      <ul class="b">
+        <li><code>readString</code> dosyanın tamamını belleğe alır. Büyük dosyalar için <code>Files.lines()</code> ya da akış kullanın.</li>
+        <li><code>lines()</code> bir <code>Stream</code> döner; try-with-resources ile kapatın.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-single">
+    <p class="kicker">Java 11 · JEP 330 — Tek dosya kaynak çalıştırma</p>
+    <h3 class="mt">Derlemeden çalıştır</h3>
+    <p class="msub"><code>java Hello.java</code> dosyayı bellekte derler ve çalıştırır. Diske <code>.class</code> yazılmaz.</p>
+    <div class="msec">
+      <h4>Eskiden ve şimdi</h4>
+      <pre class="mcode">// Java 8
+javac Hello.java     # Hello.class üretir
+java Hello
+
+// Java 11+
+java Hello.java      # tek adım</pre>
+      <p>Bağımlılık gerekirse: <code>java --class-path libs/* Hello.java</code></p>
+    </div>
+    <div class="msec">
+      <h4>Nerede işe yarar</h4>
+      <ul class="b">
+        <li>Bir API'yi hızlıca denemek, hata ayıklama betiği yazmak.</li>
+        <li>Test verisi üreten yardımcı programlar; ayrı bir modül açmaya değmeyen işler.</li>
+        <li>Eğitim ve mülakat: aday tek dosyayla çalıştırıp gösterebilir.</li>
+        <li>Unix'te kabuk betiği gibi: dosyanın başına <code>#!/usr/bin/java --source 21</code> yazıp çalıştırılabilir yapabilirsiniz.</li>
+      </ul>
+    </div>
+    <div class="msec last">
+      <h4>Dikkat</h4>
+      <ul class="b">
+        <li>Java 11–21 arasında yalnızca <b>tek dosya</b> çalışır. Java 22 (JEP 458) ile çok dosyalı kaynak programlar da desteklendi.</li>
+        <li>Her çalıştırmada yeniden derlendiği için başlangıç birkaç yüz milisaniye uzundur; üretim için değil, araç için düşünün.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-collectors">
+    <p class="kicker">Java 9 → 16 · Stream eklemeleri</p>
+    <h3 class="mt">Stream API on yılda olgunlaştı</h3>
+    <p class="msub">Java 8'de gelen Stream, sonraki sürümlerde eksik kalan parçalarını tamamladı.</p>
+    <div class="msec">
+      <h4>Java 9</h4>
+      <pre class="mcode">// Sıralı veride koşul bozulana kadar al / bozulana kadar atla
+loglar.stream().takeWhile(l -&gt; !l.startsWith("ERROR")).toList();
+loglar.stream().dropWhile(String::isBlank).toList();
+
+// Koşullu iterate: for döngüsünün stream karşılığı
+Stream.iterate(1, n -&gt; n &lt;= 100, n -&gt; n * 2).forEach(...);
+
+Stream.ofNullable(belkiNull);   // null ise boş stream</pre>
+    </div>
+    <div class="msec">
+      <h4>Java 12 ve 16</h4>
+      <pre class="mcode">// teeing: aynı akışı iki toplayıcıya verip sonucu birleştir
+var ozet = siparisler.stream().collect(
+    Collectors.teeing(
+        Collectors.counting(),
+        Collectors.summingDouble(Siparis::tutar),
+        (adet, toplam) -&gt; adet + " sipariş, " + toplam + " TL"));
+
+var liste = siparisler.stream().map(Siparis::no).toList();  // Java 16</pre>
+    </div>
+    <div class="msec last">
+      <h4>Dikkat</h4>
+      <ul class="b">
+        <li><code>stream().toList()</code> ile <code>collect(Collectors.toList())</code> aynı değildir: birincisi <b>değiştirilemez</b> liste döner, ikincisi değiştirilebilir <code>ArrayList</code>. Geçişte <code>UnsupportedOperationException</code> olarak karşınıza çıkabilir.</li>
+        <li><code>toList()</code> null elemana izin verir, <code>List.of()</code> vermez.</li>
+        <li><code>takeWhile</code> / <code>dropWhile</code> sırasız (unordered) akışlarda beklediğiniz sonucu vermez; sıralı kaynaklarda kullanın.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-factories">
+    <p class="kicker">Java 9 · Koleksiyon fabrikaları</p>
+    <h3 class="mt">Tek satırda değişmez koleksiyon</h3>
+    <p class="msub">Java 8'de sabit bir liste yazmak üç satır sürerdi; artık bir çağrı.</p>
+    <div class="msec">
+      <h4>Eskiden ve şimdi</h4>
+      <pre class="mcode">// Java 8
+List&lt;String&gt; l = Collections.unmodifiableList(
+        Arrays.asList("a", "b", "c"));
+
+Map&lt;String, Integer&gt; m = new HashMap&lt;&gt;();
+m.put("bir", 1); m.put("iki", 2);
+m = Collections.unmodifiableMap(m);
+
+// Java 9
+var l = List.of("a", "b", "c");
+var m = Map.of("bir", 1, "iki", 2);
+var m2 = Map.ofEntries(Map.entry("bir", 1), Map.entry("iki", 2));
+
+// Java 10
+var kopya = List.copyOf(degisebilirListe);</pre>
+    </div>
+    <div class="msec">
+      <h4>Üç kardeşin farkı</h4>
+      <table class="mtable">
+        <tr><th></th><th>Değiştirilebilir mi</th><th>null kabul eder mi</th></tr>
+        <tr><td>Arrays.asList</td><td>Boyut sabit, eleman değişir</td><td>Evet</td></tr>
+        <tr><td>unmodifiableList</td><td>Hayır, ama alttaki liste değişirse görünür</td><td>Evet</td></tr>
+        <tr><td>List.of</td><td>Hayır, gerçek kopya</td><td><b>Hayır, NPE atar</b></td></tr>
+      </table>
+    </div>
+    <div class="msec last">
+      <h4>Dikkat</h4>
+      <ul class="b">
+        <li><b>null yasaktır.</b> <code>List.of(a, b)</code> içinde biri null ise <code>NullPointerException</code> alırsınız. Java 8 kodunu taşırken en sık karşılaşılan sürpriz budur.</li>
+        <li><code>Set.of</code> ve <code>Map.of</code> için <b>yineleme sırası her JVM çalışmasında değişebilir</b>. Sıraya güvenen testler bazen geçip bazen kalır. Sıra gerekiyorsa <code>LinkedHashSet</code> kullanın.</li>
+        <li><code>Map.of</code> en fazla 10 çift alır; fazlası için <code>Map.ofEntries</code>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-tools">
+    <p class="kicker">Java 9 · JShell &nbsp;·&nbsp; Java 16 · jpackage</p>
+    <h3 class="mt">İki araç: denemek ve dağıtmak</h3>
+    <div class="msec">
+      <h4>JShell — Java'nın komut satırı (Java 9)</h4>
+      <p>Bir şeyi denemek için artık <code>Main</code> sınıfı açmanıza gerek yok. Terminale <code>jshell</code> yazın:</p>
+      <pre class="mcode">jshell&gt; var l = List.of(3, 1, 2)
+l ==&gt; [3, 1, 2]
+
+jshell&gt; l.stream().sorted().toList()
+$2 ==&gt; [1, 2, 3]
+
+jshell&gt; /vars        // tanımlı değişkenler
+jshell&gt; /save deneme.jsh</pre>
+      <p><code>jshell --class-path uygulama.jar</code> ile kendi sınıflarınızı da yükleyip deneyebilirsiniz. Yeni bir kütüphaneyi öğrenirken en hızlı yol.</p>
+    </div>
+    <div class="msec">
+      <h4>jpackage — kurulabilir paket (Java 16, JEP 392)</h4>
+      <pre class="mcode">jpackage --name Siparis --input hedef/ \
+         --main-jar siparis.jar --type msi</pre>
+      <p>Çıktı: Windows'ta <code>.exe</code>/<code>.msi</code>, macOS'ta <code>.dmg</code>/<code>.pkg</code>, Linux'ta <code>.deb</code>/<code>.rpm</code>. Paketin içine küçültülmüş bir Java çalışma zamanı gömülür; kullanıcının makinesinde JRE kurulu olması gerekmez.</p>
+    </div>
+    <div class="msec last">
+      <h4>Dikkat</h4>
+      <ul class="b">
+        <li>jpackage <b>çalıştığı platform için</b> paket üretir. Üç işletim sistemi için üç derleme işi gerekir.</li>
+        <li>Windows'ta WiX gibi platform araçlarının kurulu olması gerekir.</li>
+        <li>Masaüstü uygulamaları içindir; sunucu uygulamalarında konteyner imajı hâlâ doğru yoldur.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ YARDIMCI NPE MESAJI ============ -->
+<section class="slide">
+  <p class="kicker">Java 14 · JEP 358 — Helpful NullPointerExceptions</p>
+  <h1>NPE artık nedenini kendisi söylüyor</h1>
+  <div class="row fill">
+    <div class="runner" data-ex="npeOld" data-static="Java 8 konsol çıktısı — burada çalışmaz" data-label="Eskiden — 'bir yerde null var, bul bakalım'"></div>
+    <div class="runner" data-ex="npeNew" data-label="Şimdi — hangi ifadenin null olduğu mesajın içinde"></div>
+  </div>
+  <div class="row" style="margin-top:14px;gap:20px">
+    <table class="cmp msg">
+      <tr><th>Durum</th><th>Java 14+ mesajı</th></tr>
+      <tr><td>Zincirde null dönüş</td><td>Cannot invoke "Adres.il()" because the return value of "Musteri.adres()" is null</td></tr>
+      <tr><td>Unboxing (Map'ten null)</td><td>Cannot invoke "java.lang.Integer.intValue()" because the return value of "java.util.HashMap.get(Object)" is null</td></tr>
+      <tr><td>Dizi elemanı</td><td>Cannot invoke "String.length()" because "Main.satirlar[2]" is null</td></tr>
+      <tr><td>Yerel değişken, <code>-g</code> yoksa</td><td>Cannot invoke "Musteri.ad()" because "&lt;local3&gt;" is null</td></tr>
+    </table>
+    <div class="card tint" style="flex:1;padding:16px 18px">
+      <h3 style="color:var(--orange)">Bilmeniz gerekenler</h3>
+      <ul class="b" style="font-size:12.5px;margin-top:8px">
+        <li>Java 14'te <code>-XX:+ShowCodeDetailsInExceptionMessages</code> bayrağı gerekiyordu; <b>Java 15'ten beri varsayılan açık</b>.</li>
+        <li>Mesajı JVM üretir. Kendi yazdığınız <code>throw new NullPointerException("…")</code> ve <code>Objects.requireNonNull</code> mesajları aynen kalır.</li>
+        <li>Yerel değişken adları ancak <code>-g</code> ile derlenirse görünür. Maven ve Gradle bunu varsayılan olarak yapar; gerçek projede ad görürsünüz.</li>
+        <li><b>Hata raporunda bu satırın tamamını paylaşın:</b> geliştirici, hangi çağrının null döndüğünü kodu açmadan görür.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Bu, üretim hatalarını ayıklama süresini en çok kısaltan küçük değişikliklerden biri. Eskiden tek bilgi satır numarasıydı; bir satırda dört çağrı varsa hangisinin null döndüğünü ancak log ekleyip hatayı tekrar üreterek bulurdunuz. Sağdaki örneği çalıştırın: dördüncü mesajda değişken adı yerine &lt;local3&gt; yazdığına dikkat çekin, çünkü Compiler Explorer -g olmadan derliyor. Gerçek projede Maven/Gradle -g eklediği için gerçek ad görünür. Unboxing örneği (2) özellikle önemlidir: Map&lt;String, Integer&gt;'dan gelen null'ın int'e atanması, Java 8'de hiçbir ipucu vermeyen klasik bir üretim hatasıydı.</aside>
+</section>
+
+<!-- ============ 17. VIRTUAL THREADS ============ -->
+<section class="slide">
+  <p class="kicker">Java 21 · Virtual Threads (Project Loom)</p>
+  <h1>Milyonlarca eşzamanlı görev, aynı basit kod</h1>
+  <div class="row fill">
+    <div class="runner" data-ex="virtualThreads" data-label="Java 8 havuzu → Java 21 sanal thread (5.000 görev × 50 ms)" style="flex:1.6"></div>
+    <div class="col" style="flex:1;gap:14px">
+      <div class="card"><p class="small muted"><b>Platform thread</b></p><div class="stat"><b style="color:var(--blue)">~1 MB</b><span>yığın (stack) / thread · OS yönetir · binlerle sınırlı</span></div><p class="small muted" style="font-style:italic">Havuz dolunca istekler kuyrukta bekler.</p></div>
+      <div class="card tint"><p class="small" style="color:var(--orange)"><b>Virtual thread</b></p><div class="stat"><b>~KB</b><span>heap'te yaşar · JVM yönetir · milyonlarla ölçeklenir</span></div><p class="small muted" style="font-style:italic">Reaktif/async karmaşasına gerek kalmadan yüksek throughput.</p></div>
+    </div>
+  </div>
+  <p class="ide-note" style="margin-top:14px"><b>Ne zaman kazandırır:</b> I/O bekleyen görevlerde — veritabanı, HTTP, kuyruk. CPU yoğun işlerde fark yaratmaz; orada belirleyici olan çekirdek sayısıdır.</p>
+  <p class="ide-note" style="margin-top:6px"><b>Not:</b> Compiler Explorer sandbox'ı yeni thread açmaya izin vermez; bu örnek orada "unable to create native thread" ile durur. Kopyalayıp yerelde <code>java Main.java</code> ile çalıştırın: havuz ≈ 5 sn, sanal thread ≈ 0,1 sn.</p>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Virtual thread CPU'yu hızlandırmaz; I/O bekleyen görevlerde ölçeklenebilirliği artırır. Spring Boot 3.2+ tek bir property ile (spring.threads.virtual.enabled=true) açar. Yük testleri farklı davranır: darboğaz thread sayısından veritabanı bağlantı havuzuna kayar. synchronized blokları sanal thread'i sabitler (pinning, Java 24'te düzeldi); ReentrantLock tercih edin, performans ölçümlerini yenileyin. Sunum öncesi bu örneği yerel JDK 21'de bir kez çalıştırıp süreleri not alın; sandbox thread açamadığı için canlı demo yerine "Kopyala" düğmesini kullanın.</aside>
+</section>
+
+<!-- ============ 18. JAVA 21 DİĞER ============ -->
+<section class="slide">
+  <p class="kicker">Java 21 · Kalıcı ve preview</p>
+  <h1>Bir özellik Java'da nasıl olgunlaşır?</h1>
+  <div class="row fill">
+    <div class="col" style="width:5.0in;gap:12px">
+      <div class="stages">
+        <div class="stage"><span class="sn">1</span><div><h3>Incubator — kuluçka</h3><p>Yeni <b>API'ler</b> için. <code>jdk.incubator.*</code> modülünde gelir, elle açmanız gerekir. Adı ve imzası değişebilir. Örnek: Vector API, Java 16'dan beri kuluçkada.</p></div></div>
+        <div class="stage"><span class="sn">2</span><div><h3>Preview — önizleme</h3><p><b>Dil ve JVM</b> özellikleri için. Tasarımı bitmiş, belgesi yazılmış, ama geri bildirim bekliyor. <code>--enable-preview</code> ile hem derlenir hem çalıştırılır ve <b>sürüme mühürlüdür</b>: Java 21 preview'ıyla derlenen sınıf Java 22'de çalışmaz.</p></div></div>
+        <div class="stage last"><span class="sn">3</span><div><h3>Kalıcı — standart</h3><p>Bayrak gerekmez, geriye dönük uyumluluk garantisi başlar. Genellikle bir ila üç sürüm preview'dan sonra gelir.</p></div></div>
+      </div>
+      <div class="card tint iconrow" style="padding:14px 18px;flex:none">
+        <div class="ic s"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M569.517 440.013C587.975 472.007 564.806 512 527.94 512H48.054c-36.937 0-59.999-40.055-41.577-71.987L246.423 23.985c18.467-32.009 64.72-31.951 83.154 0l239.94 416.028zM288 354c-25.405 0-46 20.595-46 46s20.595 46 46 46 46-20.595 46-46-20.595-46-46-46zm-43.673-165.346l7.418 136c.347 6.364 5.609 11.346 11.982 11.346h48.546c6.373 0 11.635-4.982 11.982-11.346l7.418-136c.375-6.874-5.098-12.654-11.982-12.654h-63.383c-6.884 0-12.356 5.78-11.981 12.654z"></path></svg></div>
+        <div><h3>Preview geri çekilebilir</h3><p style="color:var(--ink)">String Templates, Java 21 ve 22'de preview'dı; Java 23'te tamamen geri çekildi. Structured Concurrency ise 2022'den beri hâlâ preview. Bu yüzden preview özellikler <b>üretimde kullanılmaz</b> — ama izlenir, çünkü bir sonraki LTS'in içeriği burada belirlenir.</p></div>
+      </div>
+    </div>
+    <div class="col fill" style="gap:9px">
+      <p class="muted small" style="margin-bottom:-2px">Java 21'in öne çıkanları — ayrıntı için tıklayın</p>
+      <div class="card iconrow" data-modal="m-seq" style="padding:11px 16px"><div class="ic s blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M61.77 401l17.5-20.15a19.92 19.92 0 0 0 5.07-14.19v-3.31C84.34 356 80.5 352 73 352H16a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8h22.83a157.41 157.41 0 0 0-11 12.31l-5.61 7c-4 5.07-5.25 10.13-2.8 14.88l1.05 1.93c3 5.76 6.29 7.88 12.25 7.88h4.73c10.33 0 15.94 2.44 15.94 9.09 0 4.72-4.2 8.22-14.36 8.22a41.54 41.54 0 0 1-15.47-3.12c-6.49-3.88-11.74-3.5-15.6 3.12l-5.59 9.31c-3.72 6.13-3.19 11.72 2.63 15.94 7.71 4.69 20.38 9.44 37 9.44 34.16 0 48.5-22.75 48.5-44.12-.03-14.38-9.12-29.76-28.73-34.88zM496 224H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-160H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16V80a16 16 0 0 0-16-16zm0 320H176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h320a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zM16 160h64a8 8 0 0 0 8-8v-16a8 8 0 0 0-8-8H64V40a8 8 0 0 0-8-8H32a8 8 0 0 0-7.14 4.42l-8 16A8 8 0 0 0 24 64h8v64H16a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8zm-3.91 160H80a8 8 0 0 0 8-8v-16a8 8 0 0 0-8-8H41.32c3.29-10.29 48.34-18.68 48.34-56.44 0-29.06-25-39.56-44.47-39.56-21.36 0-33.8 10-40.46 18.75-4.37 5.59-3 10.84 2.8 15.37l8.58 6.88c5.61 4.56 11 2.47 16.12-2.44a13.44 13.44 0 0 1 9.46-3.84c3.33 0 9.28 1.56 9.28 8.75C51 248.19 0 257.31 0 304.59v4C0 316 5.08 320 12.09 320z"></path></svg></div><div style="flex:1"><h3>Sequenced Collections <span class="tag" style="float:right">Kalıcı</span></h3><p>getFirst, getLast, reversed — koleksiyonlarda ilk ve son eleman nihayet ortak bir arayüzde.</p></div></div>
+      <div class="card iconrow" data-modal="m-zgc" style="padding:11px 16px"><div class="ic s blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 640 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M640 130.94V96c0-17.67-14.33-32-32-32H32C14.33 64 0 78.33 0 96v34.94c18.6 6.61 32 24.19 32 45.06s-13.4 38.45-32 45.06V320h640v-98.94c-18.6-6.61-32-24.19-32-45.06s13.4-38.45 32-45.06zM224 256h-64V128h64v128zm128 0h-64V128h64v128zm128 0h-64V128h64v128zM0 448h64v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h64v-96H0v96z"></path></svg></div><div style="flex:1"><h3>Generational ZGC <span class="tag" style="float:right">Kalıcı</span></h3><p>Çok büyük heap'lerde milisaniye altı duraklama; nesil ayrımıyla daha az CPU ve bellek.</p></div></div>
+      <div class="card iconrow" data-modal="m-kem" style="padding:11px 16px"><div class="ic s blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M400 224h-24v-72C376 68.2 307.8 0 224 0S72 68.2 72 152v72H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48zm-104 0H152v-72c0-39.7 32.3-72 72-72s72 32.3 72 72v72z"></path></svg></div><div style="flex:1"><h3>Key Encapsulation API <span class="tag" style="float:right">Kalıcı</span></h3><p>Kuantum sonrası kriptografiye hazırlık için standart anahtar kapsülleme arayüzü.</p></div></div>
+      <div class="card iconrow" data-modal="m-sc" style="padding:11px 16px"><div class="ic s"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 640 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M384 320H256c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V352c0-17.67-14.33-32-32-32zM192 32c0-17.67-14.33-32-32-32H32C14.33 0 0 14.33 0 32v128c0 17.67 14.33 32 32 32h95.72l73.16 128.04C211.98 300.98 232.4 288 256 288h.28L192 175.51V128h224V64H192V32zM608 0H480c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32z"></path></svg></div><div style="flex:1"><h3>Structured Concurrency <span class="tag orange" style="float:right">Preview</span></h3><p>Alt görevleri tek birim olarak başlat, bekle ve iptal et; sanal thread'lerin doğal tamamlayıcısı.</p></div></div>
+      <div class="card iconrow" data-modal="m-unnamed" style="padding:11px 16px"><div class="ic s"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 640 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M278.9 511.5l-61-17.7c-6.4-1.8-10-8.5-8.2-14.9L346.2 8.7c1.8-6.4 8.5-10 14.9-8.2l61 17.7c6.4 1.8 10 8.5 8.2 14.9L293.8 503.3c-1.9 6.4-8.5 10.1-14.9 8.2zm-114-112.2l43.5-46.4c4.6-4.9 4.3-12.7-.8-17.2L117 256l90.6-79.7c5.1-4.5 5.5-12.3.8-17.2l-43.5-46.4c-4.5-4.8-12.1-5.1-17-.5L3.8 247.2c-5.1 4.7-5.1 12.8 0 17.5l144.1 135.1c4.9 4.6 12.5 4.4 17-.5zm327.2.6l144.1-135.1c5.1-4.7 5.1-12.8 0-17.5L492.1 112.1c-4.8-4.5-12.4-4.3-17 .5L431.6 159c-4.6 4.9-4.3 12.7.8 17.2L523 256l-90.6 79.7c-5.1 4.5-5.5 12.3-.8 17.2l43.5 46.4c4.5 4.9 12.1 5.1 17 .6z"></path></svg></div><div style="flex:1"><h3>Unnamed patterns (_) <span class="tag orange" style="float:right">Preview</span></h3><p>Kullanılmayan bileşeni ve değişkeni alt çizgiyle geçme. Java 22'de kalıcı oldu.</p></div></div>
+    </div>
+  </div>
+  <div class="footer"><span>Java 8 → Java 21</span><span class="pg"></span></div>
+  <aside class="notes">Bu slaytın asıl konusu sol taraftır: Java'nın özellik olgunlaştırma modeli. Ekibe şunu anlatın: preview bir "beta" değildir, tasarımı bitmiş bir özelliktir; ama sürüme mühürlü bayt kodu ürettiği ve geri çekilebildiği için üretimde kullanılmaz. Sağdaki beş başlık Java 21'in öne çıkanları; üçü kalıcı, ikisi o sürümde preview'dı. Unnamed patterns Java 22'de kalıcı oldu, Structured Concurrency hâlâ preview. Kartlara tıklayarak ayrıntıya inebilirsiniz.</aside>
+
+  <div class="mdata" id="m-seq">
+    <p class="kicker">Java 21 · JEP 431 — Sequenced Collections</p>
+    <h3 class="mt">İlk ve son eleman nihayet standart</h3>
+    <p class="msub">Java koleksiyonlarında "ilk elemanı al" demenin tek bir yolu yoktu. Her tip için ayrı bir hile gerekiyordu.</p>
+    <div class="msec">
+      <h4>Java 8'deki dağınıklık</h4>
+      <table class="mtable">
+        <tr><th>Tip</th><th>İlk eleman</th><th>Son eleman</th></tr>
+        <tr><td>List</td><td><code>list.get(0)</code></td><td><code>list.get(list.size() - 1)</code></td></tr>
+        <tr><td>Deque</td><td><code>deque.getFirst()</code></td><td><code>deque.getLast()</code></td></tr>
+        <tr><td>LinkedHashSet</td><td><code>set.iterator().next()</code></td><td>Yolu yok, döngü gerek</td></tr>
+        <tr><td>SortedSet</td><td><code>set.first()</code></td><td><code>set.last()</code></td></tr>
+      </table>
+    </div>
+    <div class="msec">
+      <h4>Java 21 ile</h4>
+      <pre class="mcode">var liste = new ArrayList&lt;&gt;(List.of("a", "b", "c"));
+liste.getFirst();     // "a"
+liste.getLast();      // "c"
+liste.reversed();     // [c, b, a] — kopya değil, görünüm
+
+var set = new LinkedHashSet&lt;&gt;(List.of("x", "y"));
+set.addFirst("w");    // artık mümkün
+set.getLast();        // "y"
+
+var harita = new LinkedHashMap&lt;String, Integer&gt;();
+harita.firstEntry();  harita.lastEntry();  harita.reversed();</pre>
+      <p>Arkasında üç yeni arayüz var: <code>SequencedCollection</code>, <code>SequencedSet</code>, <code>SequencedMap</code>. List, Deque, LinkedHashSet, LinkedHashMap ve SortedSet/SortedMap bunları uyguluyor.</p>
+    </div>
+    <div class="msec last">
+      <h4>Dikkat</h4>
+      <ul class="b">
+        <li><code>reversed()</code> bir <b>görünümdür</b>: kaynağı değiştirirseniz görünüm de değişir, kopya maliyeti yoktur.</li>
+        <li>Sırası olmayan koleksiyonlar (<code>HashSet</code>, <code>HashMap</code>) bu arayüzleri uygulamaz; "ilk eleman" onlar için anlamsızdır.</li>
+        <li>Kendi <code>List</code> gerçekleştiriminizi yazdıysanız yeni metotlar varsayılan gövdeyle geldiği için kodunuz kırılmaz.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-zgc">
+    <p class="kicker">Java 21 · JEP 439 — Generational ZGC</p>
+    <h3 class="mt">Büyük heap, küçük duraklama</h3>
+    <p class="msub">ZGC, heap boyutundan bağımsız olarak milisaniye altı duraklama hedefleyen çöp toplayıcıdır. Java 21 onu nesil ayrımıyla verimli hale getirdi.</p>
+    <div class="msec">
+      <h4>Kısa tarihçe</h4>
+      <ul class="b">
+        <li><b>Java 11:</b> ZGC deneysel olarak geldi. <b>Java 15:</b> üretime hazır ilan edildi.</li>
+        <li><b>Java 21:</b> nesil ayrımı (genç / yaşlı) eklendi. Aynı iş için belirgin biçimde daha az CPU ve bellek.</li>
+        <li>Java 21'de açmak için: <code>-XX:+UseZGC -XX:+ZGenerational</code></li>
+      </ul>
+    </div>
+    <div class="msec">
+      <h4>Neden nesil ayrımı önemli</h4>
+      <p>Nesnelerin çoğu kısa yaşar. Nesil ayrımı olmayan toplayıcı her turda tüm heap'i tarar; nesil ayrımı olan, çoğu zaman yalnızca genç bölgeyi tarar. Sonuç: aynı duraklama hedefi için daha az iş, daha az CPU, daha yüksek verim.</p>
+    </div>
+    <div class="msec last">
+      <h4>Hangi toplayıcıyı seçmeli</h4>
+      <table class="mtable">
+        <tr><th>Toplayıcı</th><th>Ne zaman</th></tr>
+        <tr><td>G1 (varsayılan)</td><td>Çoğu uygulama. Verim ve gecikme arasında dengeli; ayar gerektirmez.</td></tr>
+        <tr><td>ZGC</td><td>Büyük heap (onlarca GB ve üzeri) ve gecikmeye duyarlı sistemler: ödeme, borsa, gerçek zamanlı API.</td></tr>
+        <tr><td>Parallel</td><td>Duraklama umursanmayan, ham verimin önemli olduğu toplu işler.</td></tr>
+      </table>
+      <p style="margin-top:8px"><b>Not:</b> Ölçmeden toplayıcı değiştirmeyin. Küçük heap'te ZGC, G1'e göre kazanç sağlamaz.</p>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-kem">
+    <p class="kicker">Java 21 · JEP 452 — Key Encapsulation Mechanism API</p>
+    <h3 class="mt">Kuantum sonrası kriptografiye hazırlık</h3>
+    <p class="msub">İki tarafın ortak bir gizli anahtar üzerinde anlaşmasının standart bir Java arayüzü.</p>
+    <div class="msec">
+      <h4>Sorun</h4>
+      <p>Bugün TLS'in temelinde RSA ve eliptik eğri var. Yeterince güçlü bir kuantum bilgisayar bunları kırabilir. Yerlerine gelen kuantum dayanıklı algoritmalar (ML-KEM gibi) klasik "şifrele/çöz" kalıbına değil, <b>anahtar kapsülleme</b> kalıbına dayanıyor: gönderen alıcının açık anahtarıyla rastgele bir gizli anahtar üretip kapsüller, alıcı kendi özel anahtarıyla açar.</p>
+    </div>
+    <div class="msec">
+      <h4>Java 21'in getirdiği</h4>
+      <pre class="mcode">KEM kem = KEM.getInstance("DHKEM");
+
+// Gönderen: gizli anahtarı üret ve kapsülle
+KEM.Encapsulator e = kem.newEncapsulator(alicininAcikAnahtari);
+KEM.Encapsulated k = e.encapsulate();
+SecretKey gizli = k.key();          // yerel gizli anahtar
+byte[] kapsul  = k.encapsulation(); // karşıya gidecek
+
+// Alıcı: kendi özel anahtarıyla açar
+SecretKey ayniGizli = kem.newDecapsulator(ozelAnahtar)
+                         .decapsulate(kapsul);</pre>
+      <p>Java 21 <b>arayüzü</b> standartlaştırdı; böylece kütüphaneler ve TLS gerçekleştirimleri algoritmadan bağımsız yazılabiliyor. Kuantum dayanıklı ML-KEM algoritmasının kendisi sonraki sürümlerde JDK'ya eklendi (Java 24, JEP 496).</p>
+    </div>
+    <div class="msec last">
+      <h4>Ekip için anlamı</h4>
+      <ul class="b">
+        <li>Uygulama geliştiricisi bu API'yi doğrudan çağırmaz. Onu TLS katmanı ve güvenlik kütüphaneleri kullanır.</li>
+        <li>Önemi şurada: kuantum sonrası geçiş geldiğinde <b>JDK'yı yükseltmek yeterli olacak</b>, uygulama kodunu değiştirmek gerekmeyecek.</li>
+        <li>Uzun ömürlü veri saklıyorsanız ("bugün topla, yarın çöz" saldırısı) bu konuyu takip listenize alın.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-sc">
+    <p class="kicker">Java 21 · JEP 453 — Structured Concurrency (preview)</p>
+    <h3 class="mt">Alt görevleri tek birim gibi yönetmek</h3>
+    <p class="msub">Sanal thread'ler bir görevi ucuz hale getirdi. Structured Concurrency, birden çok görevi <b>birlikte</b> yönetmeyi düzene sokar.</p>
+    <div class="msec">
+      <h4>Sorun</h4>
+      <p>Bir isteği karşılamak için iki servise paralel gitmeniz gerekiyor. Biri hata verirse diğerini kim iptal edecek? Ana iş iptal edilirse alt görevler ne olacak? Elle yazılan executor kodunda bu yönetim unutulur ve <b>sızıntı</b> olur: kimsenin beklemediği görevler çalışmaya devam eder.</p>
+    </div>
+    <div class="msec">
+      <h4>Yapısal yaklaşım</h4>
+      <pre class="mcode">try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+
+    Supplier&lt;Musteri&gt; m = scope.fork(() -&gt; musteriGetir(id));
+    Supplier&lt;Siparis&gt;  s = scope.fork(() -&gt; siparisGetir(id));
+
+    scope.join();              // ikisini de bekle
+    scope.throwIfFailed();     // biri patladıysa fırlat
+
+    return new Sonuc(m.get(), s.get());
+}   // blok biterken tüm alt görevler garanti kapanır</pre>
+      <p>Kural şu: alt görevler, kendilerini başlatan bloktan uzun yaşayamaz. Bir dal başarısız olursa <code>ShutdownOnFailure</code> diğerlerini iptal eder; <code>ShutdownOnSuccess</code> ise ilk başarılı sonucu alıp gerisini iptal eder. Thread dökümlerinde ana görev ve alt görevler bir arada görünür.</p>
+    </div>
+    <div class="msec last">
+      <h4>Durumu</h4>
+      <ul class="b">
+        <li>Java 19 ve 20'de kuluçka, Java 21'den beri <b>preview</b>. Java 25'te hâlâ preview; API her sürümde biraz değişti.</li>
+        <li><code>--enable-preview</code> gerektirir, üretimde kullanılmaz.</li>
+        <li>Yine de öğrenmeye değer: sanal thread kullanan ekipler için kalıcı olduğunda varsayılan yazım biçimi bu olacak.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mdata" id="m-unnamed">
+    <p class="kicker">Java 21 · JEP 443 — Unnamed patterns and variables (preview)</p>
+    <h3 class="mt">Kullanmadığın şeye isim verme</h3>
+    <p class="msub">Alt çizgi (<code>_</code>), "burada bir şey var ama benim işim değil" demenin yolu.</p>
+    <div class="msec">
+      <h4>Örnekler</h4>
+      <pre class="mcode">// Record ayrıştırmada kullanılmayan bileşen
+case Kripto(_, var tutar) -&gt; tutar * 0.01;
+
+// Yakalanan ama okunmayan istisna
+try { ... } catch (NumberFormatException _) { return 0; }
+
+// Kullanılmayan döngü değişkeni
+for (var _ : siparisler) adet++;
+
+// Kullanılmayan lambda parametresi
+harita.forEach((_, deger) -&gt; System.out.println(deger));
+
+// try-with-resources'ta değişkene ihtiyaç yoksa
+try (var _ = kilit.al()) { ... }</pre>
+    </div>
+    <div class="msec">
+      <h4>Neden önemli</h4>
+      <ul class="b">
+        <li><b>Niyeti okunur kılar.</b> <code>ignored</code>, <code>unused</code>, <code>e2</code> gibi uydurma adlar kalkar; okuyan kişi bunun bilinçli olarak kullanılmadığını görür.</li>
+        <li>Derleyici ve statik analiz araçları "kullanılmayan değişken" uyarısı üretmez.</li>
+        <li>Aynı blokta birden çok <code>_</code> kullanılabilir; isim çakışması olmaz.</li>
+      </ul>
+    </div>
+    <div class="msec last">
+      <h4>Durumu</h4>
+      <p>Java 21'de preview, <b>Java 22'de kalıcı</b> oldu (JEP 456). Java 21 üzerinde denemek için <code>--enable-preview</code> gerekir; Java 22 ve sonrasında bayraksız kullanılır. Not: <code>_</code> tek başına Java 9'dan beri geçerli bir değişken adı değildi; bu değişiklik o boşluğu anlamlı hale getirdi.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 22. KAPANIŞ ============ -->
+<section class="slide dark">
+  <p class="kicker" style="margin-top:20px">Özetle</p>
+  <h1 style="font-size:38px;line-height:1.25">Java 8 sağlam bir temeldi.<br>Java 21, o temelin olgunlaşmış hali.</h1>
+  <div class="grid3" style="margin-top:34px">
+    <div class="card"><div class="ic m"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z"></path></svg></div><h3 style="color:#fff;margin-top:18px">Java 8 = stabil temel</h3><p class="small" style="color:#C9BFB5">Lambda ve Stream ile fonksiyonel programlama geldi; 10 yıl sonra hâlâ her 3 uygulamadan 1'i Java 8.</p></div>
+    <div class="card"><div class="ic m blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12.41 148.02l232.94 105.67c6.8 3.09 14.49 3.09 21.29 0l232.94-105.67c16.55-7.51 16.55-32.52 0-40.03L266.65 2.31a25.607 25.607 0 0 0-21.29 0L12.41 107.98c-16.55 7.51-16.55 32.53 0 40.04zm487.18 88.28l-58.09-26.33-161.64 73.27c-7.56 3.43-15.59 5.17-23.86 5.17s-16.29-1.74-23.86-5.17L70.51 209.97l-58.1 26.33c-16.55 7.5-16.55 32.5 0 40l232.94 105.59c6.8 3.08 14.49 3.08 21.29 0L499.59 276.3c16.55-7.5 16.55-32.5 0-40zm0 127.8l-57.87-26.23-161.86 73.37c-7.56 3.43-15.59 5.17-23.86 5.17s-16.29-1.74-23.86-5.17L70.29 337.87 12.41 364.1c-16.55 7.5-16.55 32.5 0 40l232.94 105.59c6.8 3.08 14.49 3.08 21.29 0L499.59 404.1c16.55-7.5 16.55-32.5 0-40z"></path></svg></div><h3 style="color:#fff;margin-top:18px">9 → 17 = dilin yeniden inşası</h3><p class="small" style="color:#C9BFB5">var, records, sealed, switch, pattern matching: daha az kod, daha çok derleyici garantisi.</p></div>
+    <div class="card"><div class="ic m"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M505.12019,19.09375c-1.18945-5.53125-6.65819-11-12.207-12.1875C460.716,0,435.507,0,410.40747,0,307.17523,0,245.26909,55.20312,199.05238,128H94.83772c-16.34763.01562-35.55658,11.875-42.88664,26.48438L2.51562,253.29688A28.4,28.4,0,0,0,0,264a24.00867,24.00867,0,0,0,24.00582,24H127.81618l-22.47457,22.46875c-11.36521,11.36133-12.99607,32.25781,0,45.25L156.24582,406.625c11.15623,11.1875,32.15619,13.15625,45.27726,0l22.47457-22.46875V488a24.00867,24.00867,0,0,0,24.00581,24,28.55934,28.55934,0,0,0,10.707-2.51562l98.72834-49.39063c14.62888-7.29687,26.50776-26.5,26.50776-42.85937V312.79688c72.59753-46.3125,128.03493-108.40626,128.03493-211.09376C512.07526,76.5,512.07526,51.29688,505.12019,19.09375ZM384.04033,168A40,40,0,1,1,424.05,128,40.02322,40.02322,0,0,1,384.04033,168Z"></path></svg></div><h3 style="color:#fff;margin-top:18px">21 = ölçek ve olgunluk</h3><p class="small" style="color:#C9BFB5">Virtual threads ile basit kodla yüksek eşzamanlılık; modern ekosistemin asgari şartı Java 17+.</p></div>
+  </div>
+  <div class="iconrow" style="align-items:center;margin-top:46px"><div class="ic s blue"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M504 256c0 136.997-111.043 248-248 248S8 392.997 8 256C8 119.083 119.043 8 256 8s248 111.083 248 248zM262.655 90c-54.497 0-89.255 22.957-116.549 63.758-3.536 5.286-2.353 12.415 2.715 16.258l34.699 26.31c5.205 3.947 12.621 3.008 16.665-2.122 17.864-22.658 30.113-35.797 57.303-35.797 20.429 0 45.698 13.148 45.698 32.958 0 14.976-12.363 22.667-32.534 33.976C247.128 238.528 216 254.941 216 296v4c0 6.627 5.373 12 12 12h56c6.627 0 12-5.373 12-12v-1.333c0-28.462 83.186-29.647 83.186-106.667 0-58.002-60.165-102-116.531-102zM256 338c-25.365 0-46 20.635-46 46 0 25.364 20.635 46 46 46s46-20.636 46-46c0-25.365-20.635-46-46-46z"></path></svg></div><p style="font-size:17px">Sorular?</p></div>
+  <aside class="notes">Kapanış: Geçiş tamamlandı. Sohbeti şuraya çevirebilirsiniz: elimizdeki Java 21 özelliklerinden hangisini önce kullanmaya başlayalım — records, pattern matching, sanal thread'ler?</aside>
+</section>
+
+</div></div>
+
+<div id="hud"><i></i></div>
+<div id="ctl">
+  <button id="bNotes" title="Konuşmacı notları (N)">✎</button>
+  <button id="bHelp" title="Yardım (?)">?</button>
+  <button id="bPrev" title="Önceki (←)">‹</button>
+  <span class="cnt" id="cnt">1 / 23</span>
+  <button id="bNext" title="Sonraki (→)">›</button>
+  <button id="bFull" title="Tam ekran (F)">⛶</button>
+</div>
+<div id="online">Çalıştırıcı: <b id="onl">godbolt.org · JDK 21.0.2</b></div>
+<aside id="notes"><h4>Konuşmacı notları</h4><div id="notesBody"></div></aside>
+<div id="modal"><div class="mbox"></div></div>
+<div id="help"><div>
+  <h4>Klavye</h4>
+  <kbd>→</kbd><kbd>Space</kbd> sonraki slayt &nbsp; <kbd>←</kbd> önceki<br>
+  <kbd>Home</kbd> / <kbd>End</kbd> ilk / son slayt<br>
+  <kbd>N</kbd> konuşmacı notları &nbsp; <kbd>F</kbd> tam ekran<br>
+  <kbd>Ctrl</kbd>+<kbd>Enter</kbd> editördeki kodu çalıştır<br>
+  <kbd>Esc</kbd> editörden çık / açık pencereyi kapat<br>
+  Kartlarda <b style="color:#F5A54A">Detay &#8250;</b> yazıyorsa tıklayın: ayrıntılı açıklama açılır.<br>
+  <p style="margin-top:10px;font-size:12px;color:#8a7f76">Kod, godbolt.org (Compiler Explorer) üzerindeki JDK 21.0.2 ile derlenip çalıştırılır. Sandbox ağa çıkamaz ve yeni thread açamaz.</p>
+</div></div>
+
+<script>
+const EXAMPLES = {"lambda7":"import java.util.*;\n\nclass Kisi {\n    private final String ad;\n    private final int yas;\n    Kisi(String ad, int yas) { this.ad = ad; this.yas = yas; }\n    String getAd()  { return ad; }\n    int getYas()    { return yas; }\n    @Override public String toString() { return ad + \"(\" + yas + \")\"; }\n}\n\nclass Main {\n    public static void main(String[] args) {\n        List<Kisi> kisiler = new ArrayList<>(List.of(\n            new Kisi(\"Zeynep\", 34), new Kisi(\"Ali\", 28), new Kisi(\"Mehmet\", 41)));\n\n        // Java 7: davranışı taşımak için anonim sınıf gerekir\n        Collections.sort(kisiler, new Comparator<Kisi>() {\n            @Override\n            public int compare(Kisi a, Kisi b) {\n                return a.getAd().compareTo(b.getAd());\n            }\n        });\n        System.out.println(\"Ada göre: \" + kisiler);\n    }\n}","lambda8":"import java.util.*;\nimport java.util.function.*;\n\nclass Kisi {\n    private final String ad;\n    private final int yas;\n    Kisi(String ad, int yas) { this.ad = ad; this.yas = yas; }\n    String getAd()  { return ad; }\n    int getYas()    { return yas; }\n    @Override public String toString() { return ad + \"(\" + yas + \")\"; }\n}\n\nclass Main {\n    public static void main(String[] args) {\n        List<Kisi> kisiler = new ArrayList<>(List.of(\n            new Kisi(\"Zeynep\", 34), new Kisi(\"Ali\", 28), new Kisi(\"Mehmet\", 41)));\n\n        // Java 8: lambda\n        kisiler.sort((a, b) -> a.getAd().compareTo(b.getAd()));\n        System.out.println(\"Ada göre : \" + kisiler);\n\n        // daha da okunur: metot referansı\n        kisiler.sort(Comparator.comparing(Kisi::getYas).reversed());\n        System.out.println(\"Yaşa göre: \" + kisiler);\n\n        // Fonksiyonel arayüzler: davranış artık bir değişkende taşınabilir\n        Predicate<Kisi> otuzUstu = k -> k.getYas() > 30;\n        Function<Kisi, String> buyukAd = k -> k.getAd().toUpperCase();\n        kisiler.forEach(k ->\n            System.out.println(buyukAd.apply(k) + \" → 30 üstü mü? \" + otuzUstu.test(k)));\n    }\n}","stream7":"import java.util.*;\n\nclass Siparis {\n    private final String musteriAdi;\n    private final double tutar;\n    Siparis(String musteriAdi, double tutar) { this.musteriAdi = musteriAdi; this.tutar = tutar; }\n    String getMusteriAdi() { return musteriAdi; }\n    double getTutar()      { return tutar; }\n}\n\nclass Main {\n    public static void main(String[] args) {\n        List<Siparis> siparisler = List.of(\n            new Siparis(\"Zeynep\", 1250), new Siparis(\"Ali\", 480),\n            new Siparis(\"Mehmet\", 3100), new Siparis(\"Ayşe\", 999), new Siparis(\"Can\", 1800));\n\n        // Java 7: NASIL yapılacağını adım adım yazıyoruz\n        List<String> sonuc = new ArrayList<>();\n        for (Siparis s : siparisler) {\n            if (s.getTutar() > 1000) {\n                sonuc.add(s.getMusteriAdi());\n            }\n        }\n        Collections.sort(sonuc);\n        System.out.println(\"1000 TL üstü sipariş verenler: \" + sonuc);\n    }\n}","stream8":"import java.util.*;\nimport java.util.stream.*;\n\nclass Siparis {\n    private final String musteriAdi;\n    private final double tutar;\n    Siparis(String musteriAdi, double tutar) { this.musteriAdi = musteriAdi; this.tutar = tutar; }\n    String getMusteriAdi() { return musteriAdi; }\n    double getTutar()      { return tutar; }\n}\n\nclass Main {\n    public static void main(String[] args) {\n        List<Siparis> siparisler = List.of(\n            new Siparis(\"Zeynep\", 1250), new Siparis(\"Ali\", 480),\n            new Siparis(\"Mehmet\", 3100), new Siparis(\"Ayşe\", 999), new Siparis(\"Can\", 1800));\n\n        // Java 8: NE istediğimizi söylüyoruz (WHERE → SELECT → ORDER BY gibi)\n        List<String> sonuc = siparisler.stream()\n            .filter(s -> s.getTutar() > 1000)\n            .map(Siparis::getMusteriAdi)\n            .sorted()\n            .collect(Collectors.toList());\n        System.out.println(\"1000 TL üstü sipariş verenler: \" + sonuc);\n\n        // Toplama / gruplama tek satır\n        double toplam = siparisler.stream().mapToDouble(Siparis::getTutar).sum();\n        System.out.println(\"Toplam ciro: \" + toplam);\n\n        Map<Boolean, Long> dagilim = siparisler.stream()\n            .collect(Collectors.partitioningBy(s -> s.getTutar() > 1000, Collectors.counting()));\n        System.out.println(\"1000 üstü / altı adet: \" + dagilim);\n    }\n}","optional":"import java.util.*;\n\nclass Main {\n    record Adres(String sehir) {}\n    record Musteri(String ad, Adres adres) {}\n\n    // Java 7 tarzı: her nokta bir NullPointerException riski\n    static String sehirEski(Musteri m) {\n        return m.adres().sehir();\n    }\n\n    // Java 8: \"değer olmayabilir\" niyeti tipte görünür\n    static String sehirYeni(Musteri m) {\n        return Optional.ofNullable(m)\n            .map(Musteri::adres)\n            .map(Adres::sehir)\n            .orElse(\"Bilinmiyor\");\n    }\n\n    public static void main(String[] args) {\n        var ayse = new Musteri(\"Ayşe\", new Adres(\"İzmir\"));\n        var can  = new Musteri(\"Can\", null);          // adresi yok\n\n        System.out.println(\"Ayşe → \" + sehirYeni(ayse));\n        System.out.println(\"Can  → \" + sehirYeni(can));\n\n        try {\n            sehirEski(can);\n        } catch (NullPointerException e) {\n            // Java 14+ 'yardımcı NPE mesajı': hangi ifade null, hata söylüyor\n            System.out.println(\"Java 7 tarzı patladı: \" + e.getMessage());\n        }\n    }\n}","javatime":"import java.time.*;\nimport java.time.format.*;\nimport java.time.temporal.*;\nimport java.util.Locale;\n\nclass Main {\n    public static void main(String[] args) {\n        var siparis = LocalDate.of(2026, 9, 6);\n        var teslim  = siparis.plusDays(14);\n        var f = DateTimeFormatter.ofPattern(\"dd.MM.yyyy EEEE\", Locale.of(\"tr\"));\n\n        System.out.println(\"Sipariş : \" + siparis.format(f));\n        System.out.println(\"Teslim  : \" + teslim.format(f));\n        System.out.println(\"Fark    : \" + ChronoUnit.DAYS.between(siparis, teslim) + \" gün\");\n        System.out.println(\"Ay sonu : \" + siparis.with(TemporalAdjusters.lastDayOfMonth()));\n        System.out.println(\"Sonraki Pazartesi: \" + siparis.with(TemporalAdjusters.next(DayOfWeek.MONDAY)));\n\n        // Saat dilimi artık belirsiz değil\n        var ist = ZonedDateTime.of(2026, 9, 6, 9, 0, 0, 0, ZoneId.of(\"Europe/Istanbul\"));\n        var ny  = ist.withZoneSameInstant(ZoneId.of(\"America/New_York\"));\n        System.out.println(\"İstanbul 09:00 = New York \" + ny.toLocalTime());\n\n        // Değişmezlik: plusDays yeni nesne döner, 'siparis' aynı kalır\n        System.out.println(\"siparis hâlâ: \" + siparis);\n    }\n}","varDemo":"import java.util.*;\n\nclass Main {\n    record Siparis(String urun, double tutar) {}\n\n    public static void main(String[] args) {\n        // Java 8: tip iki kez yazılır\n        Map<String, List<Siparis>> eskiUsul = new HashMap<String, List<Siparis>>();\n\n        // Java 10+: var — tip yine derleme zamanında kesin, sadece tekrar yazılmaz\n        var siparisler = List.of(new Siparis(\"Klavye\", 1250.0), new Siparis(\"Mouse\", 480.0));\n        var musteriler = new HashMap<String, List<Siparis>>();\n        musteriler.put(\"Ayşe\", siparisler);\n\n        var toplam = siparisler.stream().mapToDouble(Siparis::tutar).sum();\n\n        System.out.println(\"Müşteriler: \" + musteriler);\n        System.out.println(\"Toplam    : \" + toplam);\n\n        // Deneyin: aşağıdaki satırın yorumunu kaldırın → derleme hatası (var dinamik tip DEĞİL)\n        // toplam = \"metin\";\n    }\n}","textBlocks":"class Main {\n    public static void main(String[] args) {\n        String musteriNo = \"M-1042\";\n\n        // Java 8: \"{\\n\" + \"  \\\"musteriNo\\\": \\\"\" + musteriNo + \"\\\",\\n\" + ...\n        // Java 15+: Text Block — olduğu gibi yazılır\n        String json = \"\"\"\n            {\n              \"musteriNo\": \"%s\",\n              \"tutar\": 1250.00,\n              \"urunler\": [\"A-100\", \"B-200\"]\n            }\n            \"\"\".formatted(musteriNo);\n        System.out.print(json);\n\n        String sql = \"\"\"\n            SELECT m.ad, SUM(s.tutar) AS toplam\n            FROM   siparis s JOIN musteri m ON m.id = s.musteri_id\n            WHERE  s.tarih >= '2026-01-01'\n            GROUP  BY m.ad\n            \"\"\";\n        System.out.print(sql);\n    }\n}","recordOld":"import java.util.Objects;\n\n// Java 8: \"sadece veri taşıyan\" bir sınıf için bile bunca tören gerekir\nfinal class Musteri {\n    private final String ad;\n    private final String email;\n\n    Musteri(String ad, String email) {\n        this.ad = ad;\n        this.email = email;\n    }\n    String getAd()    { return ad; }\n    String getEmail() { return email; }\n\n    @Override public boolean equals(Object o) {\n        if (this == o) return true;\n        if (!(o instanceof Musteri)) return false;\n        Musteri m = (Musteri) o;\n        return ad.equals(m.ad) && email.equals(m.email);\n    }\n    @Override public int hashCode() { return Objects.hash(ad, email); }\n    @Override public String toString() { return \"Musteri{ad='\" + ad + \"', email='\" + email + \"'}\"; }\n}\n\nclass Main {\n    public static void main(String[] args) {\n        Musteri a = new Musteri(\"Ayşe\", \"ayse@ornek.com\");\n        Musteri b = new Musteri(\"Ayşe\", \"ayse@ornek.com\");\n        System.out.println(a);\n        System.out.println(\"a.equals(b) = \" + a.equals(b));\n    }\n}","recordNew":"class Main {\n    // Java 16+: aynı şey, tek satır. equals/hashCode/toString/erişimciler otomatik.\n    record Musteri(String ad, String email) {\n        // Compact constructor: doğrulama\n        Musteri {\n            if (!email.contains(\"@\")) throw new IllegalArgumentException(\"Geçersiz e-posta: \" + email);\n        }\n    }\n\n    public static void main(String[] args) {\n        var a = new Musteri(\"Ayşe\", \"ayse@ornek.com\");\n        var b = new Musteri(\"Ayşe\", \"ayse@ornek.com\");\n\n        System.out.println(a);                        // Musteri[ad=Ayşe, email=ayse@ornek.com]\n        System.out.println(\"a.ad()      = \" + a.ad());\n        System.out.println(\"a.equals(b) = \" + a.equals(b));   // alan bazlı karşılaştırma\n\n        try {\n            new Musteri(\"Can\", \"can.ornek.com\");\n        } catch (IllegalArgumentException e) {\n            System.out.println(\"Doğrulama: \" + e.getMessage());\n        }\n        // Deneyin: a.ad = \"Zeynep\";  → derleme hatası (record değişmezdir)\n    }\n}","switchExpr":"class Main {\n    // Java 14+: switch bir İFADE — değer döner, break yok, fall-through yok\n    static String gunTipi(int gunNo) {\n        return switch (gunNo) {\n            case 6, 7          -> \"Hafta sonu\";\n            case 1, 2, 3, 4, 5 -> \"Hafta içi\";\n            default -> throw new IllegalArgumentException(\"Geçersiz gün: \" + gunNo);\n        };\n    }\n\n    public static void main(String[] args) {\n        for (int g : new int[] { 1, 6, 9 }) {\n            try {\n                System.out.println(g + \" → \" + gunTipi(g));\n            } catch (IllegalArgumentException e) {\n                System.out.println(g + \" → HATA: \" + e.getMessage());\n            }\n        }\n    }\n}","sealedDemo":"import java.util.List;\n\nclass Main {\n    // Java 17+: kapalı hiyerarşi — Odeme'nin alt tipleri SADECE bunlar olabilir\n    sealed interface Odeme permits KrediKarti, Havale, Kripto {}\n\n    record KrediKarti(String no, double tutar)     implements Odeme {}\n    record Havale(String iban, double tutar)       implements Odeme {}\n    record Kripto(String cuzdan, double tutar)     implements Odeme {}\n\n    // Deneyin: yorumu kaldırın → derleme hatası (\"not allowed in the sealed hierarchy\")\n    // record Cek(String no, double tutar) implements Odeme {}\n\n    public static void main(String[] args) {\n        List<Odeme> odemeler = List.of(\n            new KrediKarti(\"4111 **** 1234\", 1250),\n            new Havale(\"TR12 0001 ...\", 3100),\n            new Kripto(\"0xAB12...\", 25_000));\n\n        for (Odeme o : odemeler) System.out.println(o);\n        System.out.println(\"İzinli alt tipler: \" + Odeme.class.getPermittedSubclasses().length);\n    }\n}","patternSimple":"class Main {\n\n    // Ödeme sadece şu iki tipten biri olabilir (sealed)\n    sealed interface Odeme permits KrediKarti, Havale {}\n    record KrediKarti(String no, double tutar) implements Odeme {}\n    record Havale(String iban, double tutar)   implements Odeme {}\n\n    static double komisyon(Odeme odeme) {\n        return switch (odeme) {\n\n            case KrediKarti k                -> k.tutar() * 0.02;   // 1\n\n            case Havale(var iban, var tutar) -> tutar * 0.005;      // 2\n\n        };                                                          // 3\n    }\n\n    public static void main(String[] args) {\n        System.out.println(\"Kart   : \" + komisyon(new KrediKarti(\"4111\", 1250)));\n        System.out.println(\"Havale : \" + komisyon(new Havale(\"TR12\", 3100)));\n    }\n}","virtualThreads":"import java.time.*;\nimport java.util.concurrent.*;\nimport java.util.stream.*;\n\nclass Main {\n    // I/O bekleyen bir görevi taklit ediyoruz (DB, HTTP çağrısı gibi)\n    static int isle(int i) throws InterruptedException {\n        Thread.sleep(50);\n        return i;\n    }\n\n    static long olc(String ad, ExecutorService ex, int gorev) throws Exception {\n        var t0 = Instant.now();\n        try (ex) {\n            var sonuclar = IntStream.range(0, gorev).mapToObj(i -> ex.submit(() -> isle(i))).toList();\n            for (var f : sonuclar) f.get();\n        }\n        long ms = Duration.between(t0, Instant.now()).toMillis();\n        System.out.printf(\"%-28s %d görev → %d ms%n\", ad, gorev, ms);\n        return ms;\n    }\n\n    public static void main(String[] args) throws Exception {\n        int gorev = 5_000;\n        // Java 8: sınırlı platform thread havuzu → 5000 × 50ms / 50 thread ≈ 5 sn\n        olc(\"Platform havuzu (50 thread):\", Executors.newFixedThreadPool(50), gorev);\n        // Java 21: her görev için bir sanal thread → ≈ 50-100 ms\n        olc(\"Sanal thread'ler:\", Executors.newVirtualThreadPerTaskExecutor(), gorev);\n    }\n}","lombokValue":"import lombok.Value;\nimport lombok.Builder;\nimport lombok.With;\n\n// Lombok: kodu DERLEME ZAMANINDA ÜRETİR.\n// Bedeli: ek bağımlılık, IDE eklentisi, her JDK sürümünde Lombok güncellemesi\n// (Java 21 için Lombok 1.18.30+), \"sihirli\" görünmeyen kod.\n@Value      // final alanlar + getter + equals/hashCode/toString + tüm-alan ctor\n@Builder    // Musteri.builder().ad(\"Ayşe\").email(\"ayse@ornek.com\").build()\n@With       // m.withEmail(\"yeni@ornek.com\") -> yeni nesne\npublic class Musteri {\n    String ad;\n    String email;\n}\n\n// Kullanım:\n// Musteri m = Musteri.builder().ad(\"Ayşe\").email(\"ayse@ornek.com\").build();\n// System.out.println(m.getAd() + \" \" + m.withEmail(\"ayse@sirket.com\"));","recordVsLombok":"class Main {\n    // Java 16+: @Value'nun DİL düzeyindeki karşılığı — eklenti yok, üretilmiş kod yok.\n    record Musteri(String ad, String email) {\n\n        // @With karşılığı: elle yazılır (kısa ama elle)\n        Musteri withEmail(String yeni) { return new Musteri(ad, yeni); }\n\n        // @Builder karşılığı dilde YOK: 2-3 alanda gerekmez,\n        // 8+ alanlı record'larda elle builder yazılır ya da Lombok kalır.\n    }\n\n    public static void main(String[] args) {\n        var m  = new Musteri(\"Ayşe\", \"ayse@ornek.com\");\n        var m2 = m.withEmail(\"ayse@sirket.com\");\n\n        System.out.println(m);                 // toString hazır\n        System.out.println(m2);                // m değişmedi, m2 yeni nesne\n        System.out.println(\"m.ad() = \" + m.ad());   // getAd() değil, ad()\n        System.out.println(\"eşit mi? \" + m.equals(new Musteri(\"Ayşe\", \"ayse@ornek.com\")));\n\n        // Lombok'ta kalanlar: @Builder, @Slf4j, mutable @Data (JPA entity),\n        // @Getter/@Setter, @RequiredArgsConstructor (Spring DI) ...\n    }\n}","npeOld":"// Java 8 — aynı iş kuralı, aynı hata\nclass Main {\n    public static void main(String[] args) {\n        Siparis s = new Siparis(\"S-1042\",\n                        new Musteri(\"Ayşe\", null));   // adresi yok\n\n        String il = s.getMusteri().getAdres().getIl().toUpperCase();\n        System.out.println(il);\n    }\n}\n\n$ java Main\nException in thread \"main\" java.lang.NullPointerException\n        at Main.main(Main.java:6)\n\n// Elimizdeki tek bilgi: 6. satır.\n// Peki hangisi null?\n//     s ?   getMusteri() ?   getAdres() ?   getIl() ?\n//\n// Klasik yöntem: log ekle → derle → dağıt → hatayı tekrar\n// ürettir → logu oku. Üretimde tekrar üretilemiyorsa, tahmin.","npeNew":"import java.util.*;\n\nclass Main {\n    record Adres(String il) {}\n    record Musteri(String ad, Adres adres) {}\n    record Siparis(String no, Musteri musteri) {}\n\n    static String[] satirlar = new String[4];\n\n    public static void main(String[] args) {\n        var s = new Siparis(\"S-1042\", new Musteri(\"Ayşe\", null));\n\n        // 1) Zincirde null dönüş\n        try {\n            System.out.println(s.musteri().adres().il().toUpperCase());\n        } catch (NullPointerException e) { System.out.println(\"1) \" + e.getMessage()); }\n\n        // 2) Klasik tuzak: Map'ten gelen null'ın unboxing'i\n        var stok = new HashMap<String, Integer>();\n        try {\n            int adet = stok.get(\"A-100\");\n        } catch (NullPointerException e) { System.out.println(\"2) \" + e.getMessage()); }\n\n        // 3) Dizi elemanı\n        try {\n            System.out.println(satirlar[2].length());\n        } catch (NullPointerException e) { System.out.println(\"3) \" + e.getMessage()); }\n\n        // 4) Yerel değişken (-g ile derlenmediyse adı görünmez)\n        Musteri m = null;\n        try {\n            System.out.println(m.ad());\n        } catch (NullPointerException e) { System.out.println(\"4) \" + e.getMessage()); }\n    }\n}","jigsawModuleInfo":"// src/main/java/module-info.java   (Java 9+)\nmodule com.sirket.siparis {\n\n    // 1) NEYE ihtiyacım var?  Bağımlılık artık kodda yazılı.\n    requires java.sql;\n    requires java.net.http;\n    requires transitive com.sirket.musteri;  // beni kullanan bunu da görsün\n\n    // 2) Dışarıya NE açıyorum?  Yazmadığım her paket gizli kalır.\n    exports com.sirket.siparis.api;\n    exports com.sirket.siparis.dto to com.sirket.raporlama;   // sadece ona\n\n    // 3) Yansıma (reflection) ayrı bir izin ister\n    opens com.sirket.siparis.entity to org.hibernate.orm.core;\n\n    // 4) Servis sağla / kullan\n    provides OdemeSaglayici with KrediKartiSaglayici;\n    uses BildirimGonderici;\n}\n\n// com.sirket.siparis.internal paketi burada YAZMIYOR\n//   -> derleyici de JVM de onu dışarıya kapatır.\n//\n// Java 8'de \"public\" herkese açık demekti.\n// Java 9'dan sonra: modül içinde public, dışarıdan görünmez.","jigsawRuntime":"class Main {\n    public static void main(String[] args) {\n        // JDK'nın kendisi de modüllerden oluşuyor\n        System.out.println(\"String sınıfının modülü : \" + String.class.getModule());\n        System.out.println(\"Bizim sınıfımızın modülü: \" + Main.class.getModule());\n        System.out.println(\"Yüklü modül sayısı      : \" + ModuleLayer.boot().modules().size());\n        System.out.println(\"java.base kaç paket     : \"\n            + String.class.getModule().getDescriptor().packages().size());\n\n        // Güçlü kapsülleme: JDK'nın içine artık girilemiyor\n        try {\n            var f = String.class.getDeclaredField(\"value\");\n            f.setAccessible(true);                 // Java 8'de çalışırdı\n            System.out.println(\"String.value okundu (!)\");\n        } catch (Throwable e) {\n            System.out.println();\n            System.out.println(e.getClass().getSimpleName() + \":\");\n            System.out.println(e.getMessage());\n            // Çözüm (geçişte): --add-opens java.base/java.lang=ALL-UNNAMED\n        }\n    }\n}","kissKarmasik":"import java.util.*;\nimport java.util.function.*;\nimport java.util.stream.*;\n\nclass Main {\n    record Siparis(String musteri, String sehir, String kategori, double tutar, boolean iptal) {}\n\n    static List<Siparis> veri() {\n        return List.of(\n            new Siparis(\"Ayşe\", \"İzmir\", \"Elektronik\", 1250, false),\n            new Siparis(\"Ayşe\", \"İzmir\", \"Elektronik\",  900, false),\n            new Siparis(\"Can\",  \"İzmir\", \"Elektronik\", 2000, false),\n            new Siparis(\"Ayşe\", \"İzmir\", \"Kitap\",       300, false),\n            new Siparis(\"Deniz\",\"Ankara\",\"Elektronik\", 4000, true),\n            new Siparis(\"Ece\",  \"Ankara\",\"Elektronik\",  750, false));\n    }\n\n    public static void main(String[] args) {\n        // Şehir -> kategori -> en çok harcayan müşteri. TEK İFADE.\n        Map<String, Map<String, String>> sonuc = veri().stream()\n            .filter(((Predicate<Siparis>) Siparis::iptal).negate())\n            .collect(Collectors.groupingBy(Siparis::sehir, TreeMap::new,\n                Collectors.collectingAndThen(\n                    Collectors.groupingBy(Siparis::kategori, TreeMap::new,\n                        Collectors.collectingAndThen(\n                            Collectors.groupingBy(Siparis::musteri,\n                                Collectors.summingDouble(Siparis::tutar)),\n                            m -> m.entrySet().stream()\n                                  .max(Map.Entry.comparingByValue())\n                                  .map(e -> e.getKey() + \" (\" + e.getValue() + \")\")\n                                  .orElse(\"-\"))),\n                    Function.identity())));\n\n        System.out.println(sonuc);\n    }\n}","kissSade":"import java.util.*;\nimport java.util.stream.*;\n\nclass Main {\n    record Siparis(String musteri, String sehir, String kategori, double tutar, boolean iptal) {}\n\n    static List<Siparis> veri() {\n        return List.of(\n            new Siparis(\"Ayşe\", \"İzmir\", \"Elektronik\", 1250, false),\n            new Siparis(\"Ayşe\", \"İzmir\", \"Elektronik\",  900, false),\n            new Siparis(\"Can\",  \"İzmir\", \"Elektronik\", 2000, false),\n            new Siparis(\"Ayşe\", \"İzmir\", \"Kitap\",       300, false),\n            new Siparis(\"Deniz\",\"Ankara\",\"Elektronik\", 4000, true),\n            new Siparis(\"Ece\",  \"Ankara\",\"Elektronik\",  750, false));\n    }\n\n    static String enCokHarcayan(List<Siparis> siparisler) {\n        Map<String, Double> toplam = new LinkedHashMap<>();\n        for (Siparis s : siparisler) toplam.merge(s.musteri(), s.tutar(), Double::sum);\n\n        return toplam.entrySet().stream()\n                .max(Map.Entry.comparingByValue())\n                .map(e -> e.getKey() + \" (\" + e.getValue() + \")\")\n                .orElse(\"-\");\n    }\n\n    public static void main(String[] args) {\n        List<Siparis> aktifler = veri().stream().filter(s -> !s.iptal()).toList();\n\n        var gruplar = aktifler.stream().collect(\n                Collectors.groupingBy(Siparis::sehir, TreeMap::new,\n                Collectors.groupingBy(Siparis::kategori, TreeMap::new, Collectors.toList())));\n\n        Map<String, Map<String, String>> sonuc = new TreeMap<>();\n        gruplar.forEach((sehir, kategoriler) -> {\n            Map<String, String> ic = new TreeMap<>();\n            kategoriler.forEach((kategori, liste) -> ic.put(kategori, enCokHarcayan(liste)));\n            sonuc.put(sehir, ic);\n        });\n\n        System.out.println(sonuc);\n    }\n}"};
+const JDK_ID = "java2102";
+const API = "https://godbolt.org/api/compiler/" + JDK_ID + "/compile";
+
+// ---------- runners ----------
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function mountRunner(el){
+  const key = el.dataset.ex, src = EXAMPLES[key] || "// örnek bulunamadı: " + key;
+  if (el.dataset.static !== undefined) {
+    el.innerHTML = `<div class="rh"><span class="lbl">${esc(el.dataset.label||key)}</span><span class="jdk" style="color:#F5A54A">${esc(el.dataset.static)}</span></div><textarea spellcheck="false" wrap="off" readonly></textarea>`;
+    el.querySelector("textarea").value = src; return;
+  }
+  el.innerHTML = `<div class="rh"><span class="lbl">${esc(el.dataset.label||key)}</span><span class="jdk">JDK 21</span>
+    <button class="btn ghost bCopy" title="Kodu panoya kopyala">Kopyala</button>
+    <button class="btn ghost bReset" title="Orijinal koda dön">Sıfırla</button>
+    <button class="btn bRun" title="Ctrl+Enter">▶ Çalıştır</button></div>
+    <textarea spellcheck="false" wrap="off"></textarea><div class="out"></div>`;
+  const ta = el.querySelector("textarea"), out = el.querySelector(".out");
+  ta.value = src;
+  el.querySelector(".bRun").onclick = () => runCode(el);
+  el.querySelector(".bReset").onclick = () => { ta.value = src; out.className = "out"; out.innerHTML = ""; };
+  el.querySelector(".bCopy").onclick = async (e) => {
+    try { await navigator.clipboard.writeText(ta.value); e.target.textContent = "Kopyalandı ✓"; }
+    catch { ta.select(); document.execCommand("copy"); e.target.textContent = "Kopyalandı ✓"; }
+    setTimeout(() => e.target.textContent = "Kopyala", 1500);
+  };
+  ta.addEventListener("keydown", (e) => {
+    if (e.key === "Tab") { e.preventDefault(); const s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + "    " + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 4; }
+    else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runCode(el); }
+    else if (e.key === "Escape") { ta.blur(); }
+  });
+}
+function lines(arr){ return (arr || []).map(l => l.text).join("\n"); }
+async function runCode(el){
+  const ta = el.querySelector("textarea"), out = el.querySelector(".out"), btn = el.querySelector(".bRun");
+  btn.disabled = true; btn.textContent = "Derleniyor…";
+  out.className = "out show"; out.innerHTML = '<div class="st">JDK 21 · derleniyor ve çalıştırılıyor…</div>';
+  const t0 = performance.now();
+  try {
+    const body = { source: ta.value, options: { userArguments: "", compilerOptions: { executorRequest: true }, filters: { execute: true }, executeParameters: { args: [], stdin: "", runtimeTools: [{ name: "env", options: [{ name: "LANG", value: "C.UTF-8" }, { name: "LC_ALL", value: "C.UTF-8" }] }] } }, lang: "java", allowStoreCodeDebug: false };
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    const ms = Math.round(performance.now() - t0);
+    const b = j.buildResult || {};
+    if (b.code !== 0) {
+      out.className = "out show err";
+      out.innerHTML = `<div class="st">✗ Derleme hatası · ${ms} ms</div><span class="err">${esc(lines(b.stderr).replace(/<source>/g, "Main.java"))}</span>
+        <div class="hint">Derleyici sizi testten önce durdurdu — Java 21'in "eksik dal", "sealed dışı tip" gibi garantileri tam olarak bu şekilde görünür.</div>`;
+    } else {
+      const so = lines(j.stdout), se = lines(j.stderr);
+      const ok = j.code === 0;
+      out.className = "out show " + (ok ? "ok" : "err");
+      let html = `<div class="st">${ok ? "✓ Çalıştı" : "✗ Çıkış kodu " + j.code} · ${ms} ms</div>` + esc(so || "(çıktı yok)");
+      if (se) html += `\n<span class="err">${esc(se)}</span>`;
+      if (/unable to create native thread|pthread_create/.test(se + so))
+        html += `<div class="hint">Compiler Explorer sandbox'ı yeni thread açmaya izin vermiyor; bu bir Java hatası değil. Örneği <b>Kopyala</b> ile alıp yerel JDK 21'de çalıştırın: <code>java Main.java</code></div>`;
+      out.innerHTML = html;
+    }
+    setOnline(true);
+  } catch (e) {
+    out.className = "out show err";
+    out.innerHTML = `<div class="st">✗ Çalıştırıcıya ulaşılamadı</div><span class="err">${esc(String(e))}</span>
+      <div class="hint">godbolt.org erişilebilir olmalı (internet / kurumsal proxy). Kodu <b>Kopyala</b> ile alıp yerelde <code>java Main.java</code> ile çalıştırabilirsiniz.</div>`;
+    setOnline(false);
+  } finally { btn.disabled = false; btn.textContent = "▶ Çalıştır"; }
+}
+function setOnline(ok){ const o = document.getElementById("onl"); o.className = ok ? "" : "off"; o.textContent = ok ? "godbolt.org · JDK 21.0.2" : "godbolt.org erişilemiyor"; }
+
+// ---------- detay penceresi ----------
+const modal = document.getElementById("modal"), mbox = modal.querySelector(".mbox");
+function openModal(id){
+  const src = document.getElementById(id); if (!src) return;
+  mbox.innerHTML = '<button class="x" title="Kapat (Esc)">&#10005;</button>' + src.innerHTML;
+  mbox.querySelector(".x").onclick = closeModal;
+  mbox.scrollTop = 0; modal.classList.add("show");
+}
+function closeModal(){ modal.classList.remove("show"); }
+modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+document.querySelectorAll("[data-modal]").forEach((el) => {
+  el.classList.add("hasmodal");
+  el.insertAdjacentHTML("beforeend", '<span class="more">Detay &#8250;</span>');
+  el.addEventListener("click", () => openModal(el.dataset.modal));
+});
+
+// ---------- deck ----------
+const slides = [...document.querySelectorAll(".slide")];
+let cur = 0;
+function show(i, push = true){
+  cur = Math.max(0, Math.min(slides.length - 1, i));
+  slides.forEach((s, k) => s.classList.toggle("active", k === cur));
+  document.getElementById("cnt").textContent = (cur + 1) + " / " + slides.length;
+  document.querySelector("#hud i").style.width = ((cur + 1) / slides.length * 100) + "%";
+  slides[cur].querySelectorAll("textarea").forEach((ta) => { ta.scrollTop = 0; });
+  const n = slides[cur].querySelector(".notes");
+  document.getElementById("notesBody").textContent = n ? n.textContent : "(bu slayt için not yok)";
+  if (push) history.replaceState(null, "", "#" + (cur + 1));
+}
+function fit(){
+  const wrap = document.getElementById("wrap"), st = document.getElementById("stage");
+  const s = Math.min(wrap.clientWidth / 1280, wrap.clientHeight / 720) * 0.97;
+  st.style.transform = "scale(" + s + ")";
+}
+document.getElementById("bPrev").onclick = () => show(cur - 1);
+document.getElementById("bNext").onclick = () => show(cur + 1);
+document.getElementById("bNotes").onclick = () => document.body.classList.toggle("notes-open") || fit() || fit();
+document.getElementById("bHelp").onclick = () => document.getElementById("help").classList.toggle("show");
+document.getElementById("bFull").onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+document.getElementById("help").onclick = (e) => { if (e.target.id === "help") e.target.classList.remove("show"); };
+document.addEventListener("keydown", (e) => {
+  const inEditor = e.target.tagName === "TEXTAREA";
+  if (e.key === "Escape") { document.getElementById("help").classList.remove("show"); closeModal(); return; }
+  if (inEditor || modal.classList.contains("show")) return;
+  switch (e.key) {
+    case "ArrowRight": case " ": case "PageDown": case "Enter": e.preventDefault(); show(cur + 1); break;
+    case "ArrowLeft": case "PageUp": case "Backspace": e.preventDefault(); show(cur - 1); break;
+    case "Home": show(0); break;
+    case "End": show(slides.length - 1); break;
+    case "n": case "N": document.body.classList.toggle("notes-open"); setTimeout(fit, 260); break;
+    case "f": case "F": document.getElementById("bFull").click(); break;
+    case "?": document.getElementById("help").classList.toggle("show"); break;
+  }
+});
+window.addEventListener("resize", fit);
+window.addEventListener("hashchange", () => show((parseInt(location.hash.slice(1)) || 1) - 1, false));
+document.querySelectorAll(".footer .pg").forEach((el) => { el.textContent = slides.indexOf(el.closest(".slide")) + 1; });
+document.querySelectorAll(".runner[data-ex]").forEach(mountRunner);
+show((parseInt(location.hash.slice(1)) || 1) - 1, false);
+fit();
+document.body.addEventListener("transitionend", fit);
+</script>
+</body>
+</html>
